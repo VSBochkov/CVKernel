@@ -1,0 +1,37 @@
+#include "rfiremaskingmodel.h"
+
+DataRFireMM::DataRFireMM(int rows, int cols) :
+    CVKernel::CVNodeData() {
+    mask = cv::Mat(rows, cols, cv::DataType<uchar>::type);
+    pixel_cnt = 0;
+}
+
+DataRFireMM::~DataRFireMM() {}
+
+RFireMaskingModel::RFireMaskingModel(QObject *parent) :
+    CVProcessingNode(parent) {}
+
+#include <iostream>
+QSharedPointer<CVKernel::CVNodeData> RFireMaskingModel::compute(CVKernel::CVProcessData &process_data) {
+    cv::Mat frame = CVKernel::video_data[process_data.video_name].frame;
+    cv::Mat overlay = CVKernel::video_data[process_data.video_name].overlay;
+    QSharedPointer<DataRFireMM> result(new DataRFireMM(overlay.rows, overlay.cols));
+    uchar* frame_matr = frame.data;
+    uchar* res_matr   = result->mask.data;
+    uchar* over_matr  = overlay.data;
+
+#pragma omp parallel for
+    for (int i = 0; i < frame.rows; ++i) {
+        for (int j = 0; j < frame.cols; ++j) {
+            uchar b = frame_matr[(i * frame.cols + j) * 3], g = frame_matr[(i * frame.cols + j) * 3 + 1], r = frame_matr[(i * frame.cols + j) * 3 + 2];
+            res_matr[i * frame.cols + j] = (r > g && g > b && r > 190 && g > 100 && b < 140) ? 1 : 0;
+            if (res_matr[i * frame.cols + j]) {
+               over_matr[(i * frame.cols + j) * 3 + 1] = 0xff;
+               over_matr[(i * frame.cols + j) * 3 + 2] = 0xff;
+               result->pixel_cnt++;
+            }
+        }
+    }
+
+    return result;
+}

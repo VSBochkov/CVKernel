@@ -1,0 +1,47 @@
+#include "fire_bbox.h"
+#include "firevalidation.h"
+
+#include <QSharedPointer>
+
+#include <omp.h>
+#include <opencv2/imgproc.hpp>
+
+DataFireBBox::DataFireBBox(cv::Rect& bbox) :
+    CVKernel::CVNodeData() {
+    fire_bbox = bbox;
+}
+
+DataFireBBox::~DataFireBBox() {}
+
+FireBBox::FireBBox(QObject *parent) :
+    CVProcessingNode(parent) {}
+
+QSharedPointer<CVKernel::CVNodeData> FireBBox::compute(CVKernel::CVProcessData &process_data) {
+    cv::Mat fire_valid = dynamic_cast<DataFireValidation *>(process_data.data["FireValidation"].data())->mask;
+    cv::Mat overlay = CVKernel::video_data[process_data.video_name].overlay;
+    int i_min, i, i_max;
+    int j_min, j, j_max;
+    uchar* fire_valid_matr = fire_valid.data;
+
+    j = 0;
+    for (i = 0; !fire_valid_matr[i * fire_valid.cols + j] && i < fire_valid.rows; ++i)
+        for (j = 0; !fire_valid_matr[i * fire_valid.cols + j] && j < fire_valid.cols; ++j);
+    i_min = i;
+
+    for (j = 0; !fire_valid_matr[i * fire_valid.cols + j] && j < fire_valid.cols; ++j)
+        for (i = i_min; !fire_valid_matr[i * fire_valid.cols + j] && i < fire_valid.rows; ++i);
+    j_min = j;
+
+    for (i = fire_valid.rows - 1; !fire_valid_matr[i * fire_valid.cols + j] && i > i_min; --i)
+        for (j = fire_valid.cols - 1; !fire_valid_matr[i * fire_valid.cols + j] && j >= j_min; --j);
+    i_max = i;
+
+    for (j = fire_valid.cols - 1; !fire_valid_matr[i * fire_valid.cols + j] && j >= j_min; --j)
+        for (i = fire_valid.rows - 1; !fire_valid_matr[i * fire_valid.cols + j] && i >= i_min; --i);
+    j_max = j;
+
+    cv::Rect bbox(j_min, i_min, j_max - j_min, i_max - i_min);
+    QSharedPointer<DataFireBBox> result(new DataFireBBox(bbox));
+    cv::rectangle(overlay, bbox, cv::Scalar(0xff, 0, 0), 2);
+    return result;
+}
