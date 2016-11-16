@@ -15,6 +15,7 @@ FlameSrcBBox::FlameSrcBBox(QObject *parent) :
     min_area_percent = 10;
     intersect_thresh = 0.4;
     dtime_thresh = 0.5;
+    debug_overlay_index = 3;
 }
 
 QSharedPointer<CVKernel::CVNodeData> FlameSrcBBox::compute(CVKernel::CVProcessData &process_data) {

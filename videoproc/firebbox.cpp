@@ -27,6 +27,8 @@ FireBBox::FireBBox(QObject *parent) :
     intersect_thresh = 0.4;
     dtime_thresh = 0.1;
     aver_bbox_square = 0.;
+
+    debug_overlay_index = 2;
 }
 
 
@@ -105,10 +107,16 @@ std::vector<obj_bbox> FireBBox::calc_bboxes(cv::Mat proc_mask, cv::Mat overlay, 
     }
 
     std::vector<obj_bbox> result_bboxes;
+
+    cv::Mat rgb_bboxes = CVKernel::video_data[process_data.video_name].debug_overlay.rowRange(overlay.rows * debug_overlay_index, overlay.rows * (debug_overlay_index + 1));
+
     int deleted = 0;
     for (auto& base_bbox : base_bboxes) {
         if ((process_data.frame_num - base_bbox.last_fnum) <= dtime_thresh * std::max(process_data.fps, 25.)) {
-            if (draw) cv::rectangle(overlay, base_bbox.rect, bbox_color, 1);
+            if (draw) {
+                cv::rectangle(overlay, base_bbox.rect, bbox_color, 1);
+                cv::rectangle(rgb_bboxes, base_bbox.rect, bbox_color, 1);
+            }
             result_bboxes.push_back(base_bbox);
         } else
             deleted++;

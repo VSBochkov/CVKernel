@@ -56,6 +56,7 @@ protected:
     double intersect_thresh;
     double dtime_thresh;
     double aver_bbox_square;
+    int debug_overlay_index;
     std::vector<obj_bbox> base_bboxes;
 };
 

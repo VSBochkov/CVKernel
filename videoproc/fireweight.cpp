@@ -74,7 +74,7 @@ QSharedPointer<CVKernel::CVNodeData> FireWeightDistrib::compute(CVKernel::CVProc
     counter = std::min(counter + 1, (int)period * 2);
     cv::Mat gray_weights = base * 255;
     gray_weights.assignTo(gray_weights, CV_8UC1);
-    cv::Mat rgb_weights = CVKernel::video_data[process_data.video_name].debug_overlay.rowRange(overlay.rows, overlay.rows * 2);
+    cv::Mat rgb_weights = CVKernel::video_data[process_data.video_name].debug_overlay.rowRange(overlay.rows * 3, overlay.rows * 4);
     cv::cvtColor(gray_weights, rgb_weights, CV_GRAY2BGR);
 
     QSharedPointer<DataFireWeightDistrib> result(new DataFireWeightDistrib(base, flame, flame_pixel_cnt));

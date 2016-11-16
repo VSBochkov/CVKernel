@@ -161,6 +161,7 @@ CVForestParser& CVForestParser::parseJSON(QString json_fname) {
     QJsonObject json_obj = json.object();
     video_in = QString(json_obj["input"].toString());
     video_out = QString(json_obj["output"].toString());
+
     QJsonArray forest = json_obj["process"].toArray();
     proc_forest.reserve(forest.size());
     for (QJsonValueRef tree : forest) {

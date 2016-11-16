@@ -1,4 +1,5 @@
 #include "rfiremaskingmodel.h"
+#include <opencv2/imgproc.hpp>
 
 DataRFireMM::DataRFireMM(int rows, int cols) :
     CVKernel::CVNodeData() {
@@ -32,6 +33,9 @@ QSharedPointer<CVKernel::CVNodeData> RFireMaskingModel::compute(CVKernel::CVProc
             }
         }
     }
+
+    cv::Mat rgb_rmodel = CVKernel::video_data[process_data.video_name].debug_overlay.rowRange(overlay.rows, overlay.rows * 2);
+    cv::cvtColor(result->mask * 255, rgb_rmodel, CV_GRAY2BGR);
 
     return result;
 }

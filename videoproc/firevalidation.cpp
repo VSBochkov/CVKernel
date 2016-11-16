@@ -7,6 +7,7 @@
 #include <omp.h>
 
 #include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 DataFireValidation::DataFireValidation(int rows, int cols) :
     CVKernel::CVNodeData() {
@@ -73,5 +74,7 @@ QSharedPointer<CVKernel::CVNodeData> FireValidation::compute(CVKernel::CVProcess
         }
     }
 
+    cv::Mat rgb_fvalid = CVKernel::video_data[process_data.video_name].debug_overlay.rowRange(overlay.rows * 2, overlay.rows * 3);
+    cv::cvtColor(result->mask * 255, rgb_fvalid, CV_GRAY2BGR);
     return result;
 }

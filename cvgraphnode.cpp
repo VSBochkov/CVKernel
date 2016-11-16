@@ -19,7 +19,7 @@ CVProcessData::CVProcessData(QString video_name, double fps):
 CVProcessData::CVProcessData(QString video_name, cv::Mat frame, int fnum, double fps):
     video_name(video_name) {
     video_data[video_name].frame = frame;
-    video_data[video_name].debug_overlay = cv::Mat(frame.rows * 2, frame.cols, CV_8UC3);
+    video_data[video_name].debug_overlay = cv::Mat(frame.rows * 4, frame.cols, CV_8UC3);
     video_data[video_name].overlay = video_data[video_name].debug_overlay.rowRange(0, frame.rows);
     frame.copyTo(video_data[video_name].overlay);
     frame_num = fnum;
