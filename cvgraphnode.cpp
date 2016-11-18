@@ -11,23 +11,19 @@
 using namespace CVKernel;
 QMap<QString, VideoData> CVKernel::video_data;
 
-CVProcessData::CVProcessData(QString video_name, double fps):
-    video_name(video_name) {
-    fps = fps;
-}
-
-CVProcessData::CVProcessData(QString video_name, cv::Mat frame, int fnum, double fps):
+CVProcessData::CVProcessData(QString video_name, cv::Mat frame, int fnum, double fps, bool draw_overlay):
     video_name(video_name) {
     video_data[video_name].frame = frame;
-    video_data[video_name].debug_overlay = cv::Mat(frame.rows * 4, frame.cols, CV_8UC3);
-    video_data[video_name].overlay = video_data[video_name].debug_overlay.rowRange(0, frame.rows);
-    frame.copyTo(video_data[video_name].overlay);
+    if (draw_overlay)
+    {
+        frame.copyTo(video_data[video_name].overlay);
+    }
     frame_num = fnum;
     fps = fps;
 }
 
-CVIONode::CVIONode(QObject *parent, int device_id) :
-    QObject(parent), video_name(QString("device_") + QString::number(device_id)) {
+CVIONode::CVIONode(QObject *parent, int device_id, bool draw_overlay) :
+    QObject(parent), overlay_name(QString("device_") + QString::number(device_id)) {
     frame_number = 1;
     if (!in_stream.isOpened()) {
         in_stream.open(device_id);
@@ -35,9 +31,14 @@ CVIONode::CVIONode(QObject *parent, int device_id) :
     }
 }
 
-CVIONode::CVIONode(QObject *parent, QString video_name, QString overlay_name) :
-    QObject(parent), video_name(video_name), overlay_name(overlay_name) {
+CVIONode::CVIONode(QObject *parent, QString video_name, bool draw_overlay, QString over_name) :
+    QObject(parent), video_name(video_name) {
     frame_number = 1;
+    if (draw_overlay)
+        overlay_name = over_name;
+    if (ip_deliver) {
+
+    }
     if (!in_stream.isOpened()) {
         in_stream.open(video_name.toStdString());
         fps = in_stream.get(CV_CAP_PROP_FPS) > 1.0 ? in_stream.get(CV_CAP_PROP_FPS) : 30.;
@@ -53,7 +54,7 @@ void CVIONode::process() {
         process_data = CVProcessData(video_name, scale_frame, frame_number, get_fps());
         emit nextNode(process_data);
         usleep(get_delay((unsigned int)((double) (clock() - t1) / CLOCKS_PER_SEC) * 1000000));
-        cv::Mat overlay = video_data[video_name].debug_overlay;
+        cv::Mat overlay = video_data[video_name].overlay;
         if (!overlay.empty()) {
             if (!out_stream.isOpened())
                 out_stream.open(overlay_name.toStdString(), 1482049860, fps, overlay.size());
@@ -93,31 +94,4 @@ void CVProcessingNode::process(CVProcessData process_data) {
     calcAverageTime();
     emit pushLog(process_data.video_name, make_log(node_data));
     emit nextNode(process_data);
-}
-
-CVLoggerNode::CVLoggerNode(QObject *parent, int frame_num) :
-    QObject(parent) {
-    frames_cnt = frame_num;
-}
-
-void CVLoggerNode::save_log(QString video_name, int frame_num) {
-    if (frame_num % frames_cnt == 0) {
-        QFile file(video_name + "_log.txt");
-        if (!file.open(QIODevice::Append | QIODevice::Text))
-            return;
-        QTextStream stream(&file);
-        stream << log_map[video_name];
-        file.close();
-        log_map[video_name].clear();
-    }
-}
-
-void CVLoggerNode::add_log(QString video_name, QString log) {
-    if (log_map.contains(video_name))
-        if (log_map[video_name].isEmpty())
-            log_map[video_name] = log;
-        else
-            log_map[video_name] += log;
-    else
-        log_map[video_name] = log;
 }

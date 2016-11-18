@@ -24,8 +24,11 @@ namespace CVKernel {
         struct Node {
             Node* parent;
             cv_node value;
+            bool draw_overlay;
+            bool ip_deliver;
             QList<Node*> children;
-            Node(Node* par = NULL, cv_node val = nothing): parent(par), value(val) {
+            Node(Node* par = NULL, cv_node val = nothing, bool draw = false, bool ip_deliver = false):
+                parent(par), value(val), draw_overlay(draw), ip_deliver(ip_deliver) {
                 children = QList<Node*>();
                 if (parent != NULL)
                     parent->children.push_back(this);
@@ -58,9 +61,12 @@ namespace CVKernel {
             else if (node == "flame_src_bbox")  return flame_src_bbox;
             else                                return nothing;
         }
+    public:
         QList<CVProcessTree*> proc_forest;
         QString video_in;
         QString video_out;
+        QString ip_addr;
+        int     ip_port;
     };
 
     class CVProcessManager : QObject {
@@ -99,8 +105,6 @@ namespace CVKernel {
         QList<connection> connections;
         QMap<cv_node, QList<CVProcessingNode*>> cv_processor;
         QSet<CVProcessingNode*> processing_nodes;
-        QThread* logger_thread;
-        CVLoggerNode* logger_node;
         double max_fps;
     };
 

@@ -1,9 +1,11 @@
-  #ifndef CVGRAPHNODE_H
+#ifndef CVGRAPHNODE_H
 #define CVGRAPHNODE_H
 
 #include <QMap>
 #include <QObject>
 #include <QSharedPointer>
+#include <QUdpSocket>
+#include <QMutex>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
@@ -32,8 +34,7 @@ namespace CVKernel {
         QString video_name;
         QMap<QString, QSharedPointer<CVNodeData>> data;
         CVProcessData() {}
-        CVProcessData(QString video_name, double fps);
-        CVProcessData(QString video_name, cv::Mat frame, int fnum, double fps);
+        CVProcessData(QString video_name, cv::Mat frame, int fnum, double fps, bool draw_overlay);
     };
 
     class CVIONode : public QObject {
@@ -64,6 +65,7 @@ namespace CVKernel {
         int frame_number;
         double fps;
         CVProcessData process_data;
+        QUdpSocket udp_socket;
     };
 
     class CVProcessingNode : public QObject {
@@ -81,6 +83,11 @@ namespace CVKernel {
     public slots:
         virtual void process(CVProcessData process_data);
 
+    protected:
+        bool draw_overlay;
+        bool ip_deliever;
+        QSharedPointer<QMutex> ip_mutex;
+
     private:
         void calcAverageTime();
     private:
@@ -88,20 +95,6 @@ namespace CVKernel {
         double average_time;
         int counter;
         bool fill_buf;
-    };
-
-    class CVLoggerNode : public QObject {
-        Q_OBJECT
-    public:
-        explicit CVLoggerNode(QObject *parent = 0, int frames_to_store = 0);
-
-    public slots:
-        void add_log(QString video_name, QString log);
-        void save_log(QString video_name, int frame_num);
-
-    private:
-        int frames_cnt;
-        QMap<QString, QString> log_map;
     };
 }
 Q_DECLARE_METATYPE(CVKernel::CVProcessData)

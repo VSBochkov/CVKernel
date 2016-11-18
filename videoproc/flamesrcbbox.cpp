@@ -23,7 +23,7 @@ QSharedPointer<CVKernel::CVNodeData> FlameSrcBBox::compute(CVKernel::CVProcessDa
     cv::Mat flame = dynamic_cast<DataFireWeightDistrib *>(process_data.data["FireWeightDistrib"].data())->flame;
     cv::Mat overlay = CVKernel::video_data[process_data.video_name].overlay;
 
-    std::vector<obj_bbox> bboxes = calc_bboxes(flame.clone(), overlay, pixel_cnt, cv::Scalar(0xff, 0, 0), true, process_data);
+    std::vector<obj_bbox> bboxes = calc_bboxes(flame.clone(), overlay, pixel_cnt, cv::Scalar(0xff, 0, 0), process_data);
     QSharedPointer<DataFireBBox> result(new DataFireBBox(bboxes));
     return result;
 }

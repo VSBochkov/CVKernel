@@ -29,7 +29,7 @@ public:
     virtual QSharedPointer<CVKernel::CVNodeData> compute(CVKernel::CVProcessData &process_data);
 
 protected:
-    std::vector<obj_bbox> calc_bboxes(cv::Mat proc_mask, cv::Mat overlay, ulong pixel_cnt, cv::Scalar bbox_color, bool draw, CVKernel::CVProcessData &process_data);
+    std::vector<obj_bbox> calc_bboxes(cv::Mat proc_mask, cv::Mat overlay, ulong pixel_cnt, cv::Scalar bbox_color, CVKernel::CVProcessData &process_data);
 
     cv::Rect intersection(cv::Rect rect1, cv::Rect rect2) {
         int x1 = std::max(rect1.x, rect2.x);

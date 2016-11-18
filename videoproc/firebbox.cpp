@@ -32,7 +32,7 @@ FireBBox::FireBBox(QObject *parent) :
 }
 
 
-std::vector<obj_bbox> FireBBox::calc_bboxes(cv::Mat proc_mask, cv::Mat overlay, ulong pixel_cnt, cv::Scalar bbox_color, bool draw, CVKernel::CVProcessData &process_data) {
+std::vector<obj_bbox> FireBBox::calc_bboxes(cv::Mat proc_mask, cv::Mat overlay, ulong pixel_cnt, cv::Scalar bbox_color, CVKernel::CVProcessData &process_data) {
     std::vector<std::vector<cv::Point>> contours;
     cv::findContours(proc_mask.clone(), contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 
@@ -108,15 +108,12 @@ std::vector<obj_bbox> FireBBox::calc_bboxes(cv::Mat proc_mask, cv::Mat overlay, 
 
     std::vector<obj_bbox> result_bboxes;
 
-    cv::Mat rgb_bboxes = CVKernel::video_data[process_data.video_name].debug_overlay.rowRange(overlay.rows * debug_overlay_index, overlay.rows * (debug_overlay_index + 1));
-
     int deleted = 0;
     for (auto& base_bbox : base_bboxes) {
         if ((process_data.frame_num - base_bbox.last_fnum) <= dtime_thresh * std::max(process_data.fps, 25.)) {
-            if (draw) {
+            if (draw_overlay)
                 cv::rectangle(overlay, base_bbox.rect, bbox_color, 1);
-                cv::rectangle(rgb_bboxes, base_bbox.rect, bbox_color, 1);
-            }
+
             result_bboxes.push_back(base_bbox);
         } else
             deleted++;
@@ -136,6 +133,12 @@ std::vector<obj_bbox> FireBBox::calc_bboxes(cv::Mat proc_mask, cv::Mat overlay, 
     else if (aver_bbox_square > (proc_mask.rows * proc_mask.cols) / 50.)
         grav_thresh += 0.5;
 
+    if (ip_deliever) {
+        ip_mutex->lock();
+
+        ip_mutex->unlock();
+    }
+
     return result_bboxes;
 }
 
@@ -143,7 +146,7 @@ QSharedPointer<CVKernel::CVNodeData> FireBBox::compute(CVKernel::CVProcessData &
     cv::Mat fire_valid = dynamic_cast<DataFireValidation *>(process_data.data["FireValidation"].data())->mask;
     ulong pixel_cnt = dynamic_cast<DataRFireMM *>(process_data.data["RFireMaskingModel"].data())->pixel_cnt;
     cv::Mat overlay = CVKernel::video_data[process_data.video_name].overlay;
-    std::vector<obj_bbox> bboxes = calc_bboxes(fire_valid.clone(), overlay, pixel_cnt, cv::Scalar(0, 0xff, 0xff), true, process_data);
+    std::vector<obj_bbox> bboxes = calc_bboxes(fire_valid.clone(), overlay, pixel_cnt, cv::Scalar(0, 0xff, 0xff), process_data);
     QSharedPointer<DataFireBBox> result(new DataFireBBox(bboxes));
     return result;
 }
