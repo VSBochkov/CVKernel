@@ -9,8 +9,8 @@ DataYFireMM::DataYFireMM(int rows, int cols) :
 
 DataYFireMM::~DataYFireMM() {}
 
-YFireMaskingModel::YFireMaskingModel(QObject *parent) :
-    CVProcessingNode(parent) {}
+YFireMaskingModel::YFireMaskingModel(QObject *parent, bool ip_del, bool over_draw) :
+    CVProcessingNode(parent, ip_del, over_draw) {}
 
 QSharedPointer<CVKernel::CVNodeData> YFireMaskingModel::compute(CVKernel::CVProcessData &process_data) {
     cv::Mat frame = CVKernel::video_data[process_data.video_name].frame;

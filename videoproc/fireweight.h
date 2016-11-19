@@ -18,7 +18,7 @@ class FireWeightDistrib : public CVKernel::CVProcessingNode
 {
     Q_OBJECT
 public:
-    explicit FireWeightDistrib(QObject *parent = 0);
+    explicit FireWeightDistrib(QObject *parent = 0, bool ip_del = false, bool over_draw = false);
     virtual QSharedPointer<CVKernel::CVNodeData> compute(CVKernel::CVProcessData &process_data);
 
 private:

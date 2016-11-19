@@ -20,8 +20,8 @@ DataFireBBox::DataFireBBox(std::vector<obj_bbox> &bboxes) :
 
 DataFireBBox::~DataFireBBox() {}
 
-FireBBox::FireBBox(QObject *parent) :
-    CVProcessingNode(parent) {
+FireBBox::FireBBox(QObject *parent, bool ip_del, bool over_draw) :
+    CVProcessingNode(parent, ip_del, over_draw) {
     grav_thresh = 5.;
     min_area_percent = 10;
     intersect_thresh = 0.4;
@@ -135,7 +135,11 @@ std::vector<obj_bbox> FireBBox::calc_bboxes(cv::Mat proc_mask, cv::Mat overlay, 
 
     if (ip_deliever) {
         ip_mutex->lock();
-
+        QDataStream out(&process_data.data_serialized, QIODevice::WriteOnly);
+        if (!result_bboxes.empty())
+            out << qint16((short)result_bboxes.size());
+        for (auto& obj : result_bboxes)
+            out << obj;
         ip_mutex->unlock();
     }
 

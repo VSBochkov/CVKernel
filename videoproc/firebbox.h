@@ -2,17 +2,36 @@
 #define FIRE_BBOX_H
 
 #include <QSharedPointer>
+#include <QDataStream>
 #include "cvgraphnode.h"
 #include <vector>
 
 struct obj_bbox {
     cv::Rect rect;
-    int last_fnum;
-    int first_fnum;
+    long last_fnum;
+    long first_fnum;
 
-    obj_bbox(cv::Rect bbox, int fnum):
+    obj_bbox(cv::Rect bbox, long fnum):
         rect(bbox), last_fnum(fnum), first_fnum(fnum) {}
     obj_bbox(): rect(cv::Rect()), last_fnum(-1), first_fnum(-1) {}
+
+    friend QDataStream& operator << (QDataStream& out, const obj_bbox& bbox) {
+        out << qint16(bbox.rect.x) << qint16(bbox.rect.y) << qint16(bbox.rect.width) << qint16(bbox.rect.height)
+            << qint64(bbox.last_fnum) << qint64(bbox.first_fnum);
+        return out;
+    }
+    friend QDataStream& operator >> (QDataStream& in, obj_bbox& bbox) {
+        qint16 rect_x, rect_y, rect_width, rect_height;
+        qint64 last, first;
+        in >> rect_x >> rect_y >> rect_width >> rect_height >> last >> first;
+        bbox.rect.x = (int)rect_x;
+        bbox.rect.y = (int)rect_y;
+        bbox.rect.width = (int)rect_width;
+        bbox.rect.height = (int)rect_height;
+        bbox.last_fnum = (long)last;
+        bbox.first_fnum = (long)first;
+        return in;
+    }
 };
 
 class DataFireBBox : public CVKernel::CVNodeData {
@@ -25,7 +44,7 @@ public:
 class FireBBox : public CVKernel::CVProcessingNode {
     Q_OBJECT
 public:
-    explicit FireBBox(QObject *parent = 0);
+    explicit FireBBox(QObject *parent = 0, bool ip_del = false, bool over_draw = false);
     virtual QSharedPointer<CVKernel::CVNodeData> compute(CVKernel::CVProcessData &process_data);
 
 protected:

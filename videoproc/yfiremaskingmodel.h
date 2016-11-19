@@ -14,7 +14,7 @@ public:
 class YFireMaskingModel : public CVKernel::CVProcessingNode {
     Q_OBJECT
 public:
-    explicit YFireMaskingModel(QObject *parent = 0);
+    explicit YFireMaskingModel(QObject *parent = 0, bool ip_del = false, bool over_draw = false);
     virtual QSharedPointer<CVKernel::CVNodeData> compute(CVKernel::CVProcessData &process_data);
 };
 #endif // YFIREMASKINGMODEL_H

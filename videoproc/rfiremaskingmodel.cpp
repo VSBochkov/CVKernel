@@ -9,12 +9,12 @@ DataRFireMM::DataRFireMM(int rows, int cols) :
 
 DataRFireMM::~DataRFireMM() {}
 
-RFireMaskingModel::RFireMaskingModel(QObject *parent) :
-    CVProcessingNode(parent) {}
+RFireMaskingModel::RFireMaskingModel(QObject *parent, bool ip_del, bool over_draw) :
+    CVProcessingNode(parent, ip_del, over_draw) {}
 
 QSharedPointer<CVKernel::CVNodeData> RFireMaskingModel::compute(CVKernel::CVProcessData &process_data) {
     cv::Mat frame = CVKernel::video_data[process_data.video_name].frame;
-    QSharedPointer<DataRFireMM> result(new DataRFireMM(overlay.rows, overlay.cols));
+    QSharedPointer<DataRFireMM> result(new DataRFireMM(frame.rows, frame.cols));
     uchar* frame_matr = frame.data;
     uchar* res_matr   = result->mask.data;
 

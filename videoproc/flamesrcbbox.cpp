@@ -9,8 +9,8 @@
 #include <opencv2/core.hpp>
 
 
-FlameSrcBBox::FlameSrcBBox(QObject *parent) :
-    FireBBox(parent) {
+FlameSrcBBox::FlameSrcBBox(QObject *parent, bool ip_del, bool over_draw) :
+    FireBBox(parent, ip_del, over_draw) {
     grav_thresh = 10.;
     min_area_percent = 10;
     intersect_thresh = 0.4;

@@ -63,6 +63,7 @@ namespace CVKernel {
         }
     public:
         QList<CVProcessTree*> proc_forest;
+        int     device_in;
         QString video_in;
         QString video_out;
         QString ip_addr;
@@ -74,8 +75,7 @@ namespace CVKernel {
     public:
         explicit CVProcessManager(QObject *parent = 0);
         virtual ~CVProcessManager();
-        void addNewStream(int devId, QList<CVProcessTree*> processForest);
-        void addNewStream(QString video_in, QString video_out, QList<CVProcessTree*> processForest);
+        void addNewStream(CVForestParser &forest);
 
         void purposeProcesses(
             QList<CVProcessTree*> processForest,
@@ -87,8 +87,9 @@ namespace CVKernel {
 
     private:
         void createNewThread(CVProcessingNode* node);
-        void purpose(cv_node parent_val, cv_node curr_val);
-        void purpose(CVIONode* video_io, cv_node root_val);
+        void addProcessingNode(CVProcessTree::Node* node);
+        void purpose(CVProcessTree::Node* parent, CVProcessTree::Node* curr);
+        void purpose(CVIONode* video_io, CVProcessTree::Node* root);
         void purpose_tree(CVProcessTree::Node* node);
 
     private:

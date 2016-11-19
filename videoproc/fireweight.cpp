@@ -16,8 +16,8 @@ DataFireWeightDistrib::DataFireWeightDistrib(cv::Mat base, cv::Mat flame_src, ul
 
 DataFireWeightDistrib::~DataFireWeightDistrib() {}
 
-FireWeightDistrib::FireWeightDistrib(QObject *parent) :
-    CVProcessingNode(parent) {
+FireWeightDistrib::FireWeightDistrib(QObject *parent, bool ip_del, bool over_draw) :
+    CVProcessingNode(parent, ip_del, over_draw) {
     counter = 0;
     period = 15;
     weight_thr = 0.3;
@@ -27,7 +27,7 @@ FireWeightDistrib::FireWeightDistrib(QObject *parent) :
 QSharedPointer<CVKernel::CVNodeData> FireWeightDistrib::compute(CVKernel::CVProcessData &process_data) {
     std::vector<obj_bbox> fire_bboxes = dynamic_cast<DataFireBBox *>(process_data.data["FireBBox"].data())->fire_bboxes;
     cv::Mat  fire_mask = dynamic_cast<DataRFireMM *>(process_data.data["RFireMaskingModel"].data())->mask;
-    cv::Mat  flame = cv::Mat::zeros(overlay.rows, overlay.cols, CV_8UC1);
+    cv::Mat  flame = cv::Mat::zeros(fire_mask.rows, fire_mask.cols, CV_8UC1);
     uchar* fire_mask_matr = fire_mask.data;
     uchar* flame_matr = flame.data;
 

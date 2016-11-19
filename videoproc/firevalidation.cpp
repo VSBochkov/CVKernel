@@ -16,8 +16,8 @@ DataFireValidation::DataFireValidation(int rows, int cols) :
 
 DataFireValidation::~DataFireValidation() {}
 
-FireValidation::FireValidation(QObject *parent) :
-    CVProcessingNode(parent) {
+FireValidation::FireValidation(QObject *parent, bool ip_del, bool over_draw) :
+    CVProcessingNode(parent, ip_del, over_draw) {
     alpha1 = 0.25;
     alpha2 = 0.75;
     dma_thresh = 12.;
@@ -31,12 +31,12 @@ template<class Type1, class Type2> double FireValidation::dist(cv::Point3_<Type1
 QSharedPointer<CVKernel::CVNodeData> FireValidation::compute(CVKernel::CVProcessData &process_data) {
     cv::Mat frame = CVKernel::video_data[process_data.video_name].frame;
     cv::Mat rgbSignal = dynamic_cast<DataRFireMM *>(process_data.data["RFireMaskingModel"].data())->mask;
-    QSharedPointer<DataFireValidation> result(new DataFireValidation(overlay.rows, overlay.cols));
+    QSharedPointer<DataFireValidation> result(new DataFireValidation(frame.rows, frame.cols));
 
     if (process_data.frame_num == 1) {
         ema = frame.clone();
         ema.convertTo(ema, CV_32FC3);
-        dma = cv::Mat(overlay.rows, overlay.cols, CV_32FC1);
+        dma = cv::Mat(frame.rows, frame.cols, CV_32FC1);
         return result;
     }
 

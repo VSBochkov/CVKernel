@@ -20,24 +20,40 @@ CVProcessData::CVProcessData(QString video_name, cv::Mat frame, int fnum, double
     }
     frame_num = fnum;
     fps = fps;
+    data_serialized.clear();
 }
 
-CVIONode::CVIONode(QObject *parent, int device_id, bool draw_overlay) :
-    QObject(parent), overlay_name(QString("device_") + QString::number(device_id)) {
+CVIONode::CVIONode(QObject *parent, int device_id, bool draw_overlay, QString ip_addr, int ip_p) :
+    QObject(parent) {
     frame_number = 1;
+    if (draw_overlay)
+        overlay_name = QString("device_") + QString::number(device_id);
+    if (!ip_addr.isEmpty()) {
+        udp_socket = new QUdpSocket(this);
+        udp_addr = new QHostAddress(ip_addr);
+        udp_port = ip_p;
+    } else {
+        udp_socket = nullptr;
+        udp_addr = nullptr;
+    }
     if (!in_stream.isOpened()) {
         in_stream.open(device_id);
         fps = in_stream.get(CV_CAP_PROP_FPS) > 1.0 ? in_stream.get(CV_CAP_PROP_FPS) : 30.;
     }
 }
 
-CVIONode::CVIONode(QObject *parent, QString video_name, bool draw_overlay, QString over_name) :
+CVIONode::CVIONode(QObject *parent, QString video_name, bool draw_overlay, QString ip_addr, int ip_p, QString over_name) :
     QObject(parent), video_name(video_name) {
     frame_number = 1;
     if (draw_overlay)
         overlay_name = over_name;
-    if (ip_deliver) {
-
+    if (!ip_addr.isEmpty()) {
+        udp_socket = new QUdpSocket(this);
+        udp_addr = new QHostAddress(ip_addr);
+        udp_port = ip_p;
+    } else {
+        udp_socket = nullptr;
+        udp_addr = nullptr;
     }
     if (!in_stream.isOpened()) {
         in_stream.open(video_name.toStdString());
@@ -47,11 +63,13 @@ CVIONode::CVIONode(QObject *parent, QString video_name, bool draw_overlay, QStri
 
 void CVIONode::process() {
     cv::Mat frame, scale_frame;
-    cv::namedWindow(overlay_name.toStdString(), CV_WINDOW_AUTOSIZE);
+    bool draw_overlay = !overlay_name.isEmpty();
+    if (draw_overlay)
+        cv::namedWindow(overlay_name.toStdString(), CV_WINDOW_AUTOSIZE);
     clock_t t1 = clock();
     while(in_stream.read(frame)) {
         cv::resize(frame, scale_frame, cv::Size(), 400. / frame.cols, 400. / frame.cols);
-        process_data = CVProcessData(video_name, scale_frame, frame_number, get_fps());
+        process_data = CVProcessData(video_name, scale_frame, frame_number, get_fps(), draw_overlay);
         emit nextNode(process_data);
         usleep(get_delay((unsigned int)((double) (clock() - t1) / CLOCKS_PER_SEC) * 1000000));
         cv::Mat overlay = video_data[video_name].overlay;
@@ -65,6 +83,10 @@ void CVIONode::process() {
             emit save_log(video_name, frame_number);
             frame_number++;
         }
+        if (!process_data.data_serialized.isEmpty())
+        {
+            udp_socket->writeDatagram(process_data.data_serialized, *udp_addr, udp_port);
+        }
         t1 = clock();
     }
     cv::destroyWindow(overlay_name.toStdString());
@@ -72,8 +94,8 @@ void CVIONode::process() {
     emit EOS();
 }
 
-CVProcessingNode::CVProcessingNode(QObject *parent) :
-    QObject(parent) {fill_buf = false; counter = 0; average_time = 0.;}
+CVProcessingNode::CVProcessingNode(QObject *parent, bool ip_deliver_en, bool draw_overlay_en) :
+    QObject(parent) {fill_buf = false; counter = 0; average_time = 0.; ip_deliever = ip_deliver_en; draw_overlay = draw_overlay_en;}
 
 void CVProcessingNode::calcAverageTime() {
     average_time = 0.;
