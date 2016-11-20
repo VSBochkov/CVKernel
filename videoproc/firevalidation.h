@@ -14,7 +14,7 @@ public:
 class FireValidation : public CVKernel::CVProcessingNode {
     Q_OBJECT
 public:
-    explicit FireValidation(QObject *parent = 0, bool ip_del = false, bool over_draw = false);
+    explicit FireValidation(bool ip_del = false, bool over_draw = false);
     virtual QSharedPointer<CVKernel::CVNodeData> compute(CVKernel::CVProcessData &process_data);
 
 private:

@@ -1,0 +1,25 @@
+{
+  "file_input": "../fire3.mp4",
+  "file_output": "../overlay3.avi",
+  "process": [{
+      "node": "r_firemm",
+      "children": [{
+        "node": "fire_valid",
+        "children": [{
+          "node": "fire_bbox",
+          "children": [{
+            "node": "fire_weights",
+            "draw_overlay": true,
+            "children": [{
+              "node": "flame_src_bbox",
+              "draw_overlay": true,
+              "ip_deliver": true,
+              "children": []
+            }]          
+          }]
+        }]
+      }]
+  }],
+  "ip_address": "127.0.0.1",
+  "ip_port": 7777
+}

@@ -16,8 +16,8 @@ DataFireWeightDistrib::DataFireWeightDistrib(cv::Mat base, cv::Mat flame_src, ul
 
 DataFireWeightDistrib::~DataFireWeightDistrib() {}
 
-FireWeightDistrib::FireWeightDistrib(QObject *parent, bool ip_del, bool over_draw) :
-    CVProcessingNode(parent, ip_del, over_draw) {
+FireWeightDistrib::FireWeightDistrib(bool ip_del, bool over_draw) :
+    CVProcessingNode(ip_del, over_draw) {
     counter = 0;
     period = 15;
     weight_thr = 0.3;

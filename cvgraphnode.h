@@ -41,8 +41,8 @@ namespace CVKernel {
     class CVIONode : public QObject {
         Q_OBJECT
     public:
-        explicit CVIONode(QObject *parent = 0, QString video_name = "", bool draw_overlay = false, QString ip_addr = "", int ip_p = 0, QString overlay_name = "");
-        explicit CVIONode(QObject *parent = 0, int device_id = 0, bool draw_overlay = false, QString ip_addr = "", int ip_p = 0);
+        explicit CVIONode(QString video_name = "", bool draw_overlay = false, QString ip_addr = "", int ip_p = 0, QString overlay_name = "");
+        explicit CVIONode(int device_id = 0, bool draw_overlay = false, QString ip_addr = "", int ip_p = 0);
         ~CVIONode() {
             if (udp_addr == nullptr)
                 return;
@@ -82,7 +82,7 @@ namespace CVKernel {
     class CVProcessingNode : public QObject {
         Q_OBJECT
     public:
-        explicit CVProcessingNode(QObject *parent = 0, bool ip_deliever_en = false, bool draw_overlay = false);
+        explicit CVProcessingNode(bool ip_deliever_en = false, bool draw_overlay = false);
         virtual QSharedPointer<CVNodeData> compute(CVProcessData &process_data) = 0;
 
         double averageTime() { return average_time; }

@@ -50,12 +50,13 @@ void CVProcessManager::createNewThread(CVProcessingNode* node) {
 
 void CVProcessManager::addProcessingNode(CVProcessTree::Node* node) {
     switch(node->value) {
-        case r_firemm:      cv_processor[node->value].append(new RFireMaskingModel(NULL, node->ip_deliver, node->draw_overlay)); break;
-        case y_firemm:      cv_processor[node->value].append(new YFireMaskingModel(NULL, node->ip_deliver, node->draw_overlay)); break;
-        case fire_valid:    cv_processor[node->value].append(new FireValidation(NULL, node->ip_deliver, node->draw_overlay)); break;
-        case fire_bbox:     cv_processor[node->value].append(new FireBBox(NULL, node->ip_deliver, node->draw_overlay)); break;
-        case fire_weights:  cv_processor[node->value].append(new FireWeightDistrib(NULL, node->ip_deliver, node->draw_overlay)); break;
-        case flame_src_bbox:cv_processor[node->value].append(new FlameSrcBBox(NULL, node->ip_deliver, node->draw_overlay)); break;
+        case r_firemm:      cv_processor[node->value].append(new RFireMaskingModel(node->ip_deliver, node->draw_overlay)); break;
+        case y_firemm:      cv_processor[node->value].append(new YFireMaskingModel(node->ip_deliver, node->draw_overlay)); break;
+        case fire_valid:    cv_processor[node->value].append(new FireValidation(node->ip_deliver, node->draw_overlay)); break;
+        case fire_bbox:     cv_processor[node->value].append(new FireBBox(node->ip_deliver, node->draw_overlay)); break;
+        case fire_weights:  cv_processor[node->value].append(new FireWeightDistrib(node->ip_deliver, node->draw_overlay)); break;
+        case flame_src_bbox:cv_processor[node->value].append(new FlameSrcBBox(node->ip_deliver, node->draw_overlay)); break;
+        case nothing: return;
     }
     createNewThread(cv_processor[node->value].last());
 }
@@ -72,9 +73,8 @@ void CVProcessManager::purpose(CVProcessTree::Node* par, CVProcessTree::Node* cu
         else if (
             curr_node->draw_overlay != curr->draw_overlay || curr_node->ip_deliever != curr->ip_deliver ||
             curr_node->averageTime() > 0.5 / max_fps
-        ) { addProcessingNode(curr); }
-    } else
-        addProcessingNode(curr);
+        )  { addProcessingNode(curr); }
+    } else { addProcessingNode(curr); }
 
     curr_node = cv_processor[curr->value].last();
     connect(parent_node, SIGNAL(nextNode(CVProcessData)),   curr_node,   SLOT(process(CVProcessData)),   Qt::UniqueConnection);
@@ -121,14 +121,12 @@ void CVProcessManager::purposeProcesses(
 void CVProcessManager::addNewStream(CVForestParser &forest) {
 
     CVIONode* io(forest.video_in.isEmpty() ? new CVIONode(
-                                                 this,
                                                  forest.device_in,
                                                  !forest.video_out.isEmpty(),
                                                  forest.ip_addr,
                                                  forest.ip_port
                                              ) :
                                              new CVIONode(
-                                                 this,
                                                  forest.video_in,
                                                  !forest.video_out.isEmpty(),
                                                  forest.ip_addr,
@@ -147,8 +145,8 @@ void CVProcessManager::addNewStream(CVForestParser &forest) {
 }
 
 void CVForestParser::recursive_parse(QJsonObject json_node, CVProcessTree::Node* node) {
-    node->draw_overlay = json_node["draw_overlay"].isUndefined() ? false : json_node["draw_overlay"].toBool();
-    node->ip_deliver = json_node["ip_deliver"].isUndefined() ? false : json_node["ip_deliver"].toBool();
+    node->draw_overlay = json_node["draw_overlay"].toBool();
+    node->ip_deliver = json_node["ip_deliver"].toBool();
     QJsonArray json_children = json_node["children"].toArray();
     node->children.reserve(json_children.size());
     for (int i = 0; i < json_children.size(); ++i) {
@@ -169,12 +167,12 @@ CVForestParser& CVForestParser::parseJSON(QString json_fname) {
     if (json_obj["file_input"].isUndefined())
         device_in = json_obj["device_input"].toInt();
     else
-        video_in = QString(json_obj["input"].toString());
-    if (!json_obj["video_output"].isUndefined())
-        video_out = QString(json_obj["video_output"].toString());
+        video_in = QString(json_obj["file_input"].toString());
+    if (!json_obj["file_output"].isUndefined())
+        video_out = QString(json_obj["file_output"].toString());
 
     ip_addr = json_obj["ip_address"].isUndefined() ? "" : QString(json_obj["ip_address"].toString());
-    ip_port = json_obj["ip_address"].isUndefined() ? 0 : json_obj["ip_address"].toInt();
+    ip_port = json_obj["ip_port"].isUndefined() ? 0 : json_obj["ip_port"].toInt();
 
     QJsonArray forest = json_obj["process"].toArray();
     proc_forest.reserve(forest.size());

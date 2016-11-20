@@ -16,8 +16,8 @@ DataFireValidation::DataFireValidation(int rows, int cols) :
 
 DataFireValidation::~DataFireValidation() {}
 
-FireValidation::FireValidation(QObject *parent, bool ip_del, bool over_draw) :
-    CVProcessingNode(parent, ip_del, over_draw) {
+FireValidation::FireValidation(bool ip_del, bool over_draw) :
+    CVProcessingNode(ip_del, over_draw) {
     alpha1 = 0.25;
     alpha2 = 0.75;
     dma_thresh = 12.;

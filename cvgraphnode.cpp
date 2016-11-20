@@ -23,8 +23,8 @@ CVProcessData::CVProcessData(QString video_name, cv::Mat frame, int fnum, double
     data_serialized.clear();
 }
 
-CVIONode::CVIONode(QObject *parent, int device_id, bool draw_overlay, QString ip_addr, int ip_p) :
-    QObject(parent) {
+CVIONode::CVIONode(int device_id, bool draw_overlay, QString ip_addr, int ip_p) :
+    QObject(NULL) {
     frame_number = 1;
     if (draw_overlay)
         overlay_name = QString("device_") + QString::number(device_id);
@@ -42,8 +42,8 @@ CVIONode::CVIONode(QObject *parent, int device_id, bool draw_overlay, QString ip
     }
 }
 
-CVIONode::CVIONode(QObject *parent, QString video_name, bool draw_overlay, QString ip_addr, int ip_p, QString over_name) :
-    QObject(parent), video_name(video_name) {
+CVIONode::CVIONode(QString video_name, bool draw_overlay, QString ip_addr, int ip_p, QString over_name) :
+    QObject(NULL), video_name(video_name) {
     frame_number = 1;
     if (draw_overlay)
         overlay_name = over_name;
@@ -84,9 +84,8 @@ void CVIONode::process() {
             frame_number++;
         }
         if (!process_data.data_serialized.isEmpty())
-        {
             udp_socket->writeDatagram(process_data.data_serialized, *udp_addr, udp_port);
-        }
+
         t1 = clock();
     }
     cv::destroyWindow(overlay_name.toStdString());
@@ -94,8 +93,14 @@ void CVIONode::process() {
     emit EOS();
 }
 
-CVProcessingNode::CVProcessingNode(QObject *parent, bool ip_deliver_en, bool draw_overlay_en) :
-    QObject(parent) {fill_buf = false; counter = 0; average_time = 0.; ip_deliever = ip_deliver_en; draw_overlay = draw_overlay_en;}
+CVProcessingNode::CVProcessingNode(bool ip_deliver_en, bool draw_overlay_en) :
+    QObject(nullptr), ip_mutex(new QMutex) {
+    fill_buf = false;
+    counter = 0;
+    average_time = 0.;
+    ip_deliever = ip_deliver_en;
+    draw_overlay = draw_overlay_en;
+}
 
 void CVProcessingNode::calcAverageTime() {
     average_time = 0.;

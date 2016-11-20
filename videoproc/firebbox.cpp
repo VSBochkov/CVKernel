@@ -20,8 +20,8 @@ DataFireBBox::DataFireBBox(std::vector<obj_bbox> &bboxes) :
 
 DataFireBBox::~DataFireBBox() {}
 
-FireBBox::FireBBox(QObject *parent, bool ip_del, bool over_draw) :
-    CVProcessingNode(parent, ip_del, over_draw) {
+FireBBox::FireBBox(bool ip_del, bool over_draw) :
+    CVProcessingNode(ip_del, over_draw) {
     grav_thresh = 5.;
     min_area_percent = 10;
     intersect_thresh = 0.4;
