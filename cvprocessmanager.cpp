@@ -22,12 +22,6 @@ using namespace CVKernel;
 
 CVProcessManager::CVProcessManager(QObject *parent) :
     QObject(parent) {
-    cv_processor[r_firemm].append(new RFireMaskingModel);
-    cv_processor[y_firemm].append(new YFireMaskingModel);
-    cv_processor[fire_valid].append(new FireValidation);
-    cv_processor[fire_bbox].append(new FireBBox);
-    cv_processor[fire_weights].append(new FireWeightDistrib);
-    cv_processor[flame_src_bbox].append(new FlameSrcBBox);
 }
 
 void CVProcessManager::close_threads() {}
@@ -65,44 +59,55 @@ void CVProcessManager::purpose(CVProcessTree::Node* par, CVProcessTree::Node* cu
     CVProcessingNode* parent_node = cv_processor[par->value].last();
     CVProcessingNode* curr_node;
     connection conn(parent_node, curr_node);
-    if (!cv_processor[curr->value].empty()){
+
+    if (cv_processor.find(curr->value) != cv_processor.end())
+    {
         curr_node = cv_processor[curr->value].last();
         if (parent_node == curr_node || connections.contains(conn.get_reverse()))
             return;
-        if (!processing_nodes.contains(curr_node)) createNewThread(curr_node);
-        else if (
+        if (
             curr_node->draw_overlay != curr->draw_overlay || curr_node->ip_deliever != curr->ip_deliver ||
             curr_node->averageTime() > 0.5 / max_fps
-        )  { addProcessingNode(curr); }
-    } else { addProcessingNode(curr); }
+        ) {
+            addProcessingNode(curr);
+        }
+    } else {
+        addProcessingNode(curr);
+    }
 
     curr_node = cv_processor[curr->value].last();
-    connect(parent_node, SIGNAL(nextNode(CVProcessData)),   curr_node,   SLOT(process(CVProcessData)),   Qt::UniqueConnection);
-    connect(parent_node, SIGNAL(destroyed()),               curr_node,   SLOT(deleteLater()));
+    connect(parent_node, SIGNAL(nextNode(CVProcessData, CVIONode*)), curr_node, SLOT(process(CVProcessData, CVIONode*)), Qt::UniqueConnection);
+    connect(parent_node, SIGNAL(destroyed()), curr_node, SLOT(deleteLater()));
+    connect(parent_node, SIGNAL(nextStat()), curr_node, SLOT(printStat()), Qt::UniqueConnection);
     connections.push_back(conn);
 }
 
 void CVProcessManager::purpose(CVIONode* video_io, CVProcessTree::Node* root) {
     CVProcessingNode* root_node;
-    if (!cv_processor[root->value].empty()) {
+
+    if (cv_processor.find(root->value) != cv_processor.end()) {
         root_node = cv_processor[root->value].last();
-        if (!processing_nodes.contains(root_node)) createNewThread(root_node);
-        else if (
+        if (
             root_node->draw_overlay != root->draw_overlay || root_node->ip_deliever != root->ip_deliver ||
             root_node->averageTime() > 0.5 / max_fps
-        ) { addProcessingNode(root); }
-    } else
+        ) {
+            addProcessingNode(root);
+        }
+    } else {
         addProcessingNode(root);
+    }
 
     root_node = cv_processor[root->value].last();
-    connect(video_io,   SIGNAL(nextNode(CVProcessData)),  root_node,    SLOT(process(CVProcessData)));
-    connect(video_io,   SIGNAL(destroyed()),              root_node,    SLOT(deleteLater()));
+    connect(video_io, SIGNAL(nextNode(CVProcessData, CVIONode*)), root_node, SLOT(process(CVProcessData, CVIONode*)));
+    connect(video_io, SIGNAL(destroyed()), root_node, SLOT(deleteLater()));
+    connect(video_io, SIGNAL(print_stat()), root_node, SLOT(printStat()), Qt::UniqueConnection);
 }
 
-void CVProcessManager::purpose_tree(CVProcessTree::Node* node) {
+void CVProcessManager::purpose_tree(CVIONode* video_io, CVProcessTree::Node* node) {
     for (CVProcessTree::Node* child : node->children) {
         purpose(node, child);
-        purpose_tree(child);
+        purpose_tree(video_io, child);
+        video_io->nodes_number++;
     }
     if (node->parent != NULL)
         purpose(node->parent, node);
@@ -114,7 +119,8 @@ void CVProcessManager::purposeProcesses(
 {
     for (CVProcessTree* processTree : processForest) {
         purpose(video_io, processTree->root);
-        purpose_tree(processTree->root);
+        purpose_tree(video_io, processTree->root);
+        video_io->nodes_number++;
     }
 }
 

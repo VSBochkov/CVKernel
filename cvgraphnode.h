@@ -8,6 +8,7 @@
 #include <QMutex>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <iostream>
 
 
 #define SIZE_BUF 20
@@ -43,7 +44,7 @@ namespace CVKernel {
     public:
         explicit CVIONode(QString video_name = "", bool draw_overlay = false, QString ip_addr = "", int ip_p = 0, QString overlay_name = "");
         explicit CVIONode(int device_id = 0, bool draw_overlay = false, QString ip_addr = "", int ip_p = 0);
-        ~CVIONode() {
+        virtual ~CVIONode() {
             if (udp_addr == nullptr)
                 return;
             delete udp_addr;
@@ -60,11 +61,16 @@ namespace CVKernel {
 
     signals:
         void save_log(QString video_name, int frame_num);
-        void nextNode(CVProcessData process_data);
+        void nextNode(CVProcessData process_data, CVIONode *stream_node);
         void EOS();
+        void print_stat();
 
     public slots:
         void process();
+
+    public:
+        QMap<int, std::pair<clock_t,int>> video_timings;
+        int nodes_number;
 
     private:
         cv::VideoCapture in_stream;
@@ -83,29 +89,38 @@ namespace CVKernel {
         Q_OBJECT
     public:
         explicit CVProcessingNode(bool ip_deliever_en = false, bool draw_overlay = false);
+        virtual ~CVProcessingNode() = default;
+
         virtual QSharedPointer<CVNodeData> compute(CVProcessData &process_data) = 0;
 
         double averageTime() { return average_time; }
         QString make_log(QSharedPointer<CVNodeData> data) { return data->get_log(); }
     signals:
-        void nextNode(CVProcessData process_data);
+        void nextNode(CVProcessData process_data, CVIONode *stream_node);
         void pushLog(QString video_name, QString log);
+        void nextStat();
 
     public slots:
-        virtual void process(CVProcessData process_data);
+        virtual void process(CVProcessData process_data, CVIONode *stream_node);
+        virtual void printStat();
 
     public:
         bool draw_overlay;
         bool ip_deliever;
         QSharedPointer<QMutex> ip_mutex;
+        QSharedPointer<QMutex> setup_mutex;
+        int used_counter = 0;
 
     private:
         void calcAverageTime();
     private:
         double timings[SIZE_BUF];
         double average_time;
+        double average_delay = 0.0;
+        int frame_processed = 0;
         int counter;
         bool fill_buf;
+        bool printStatCalled = false;
     };
 }
 Q_DECLARE_METATYPE(CVKernel::CVProcessData)

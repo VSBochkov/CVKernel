@@ -62,15 +62,15 @@ CVIONode::CVIONode(QString video_name, bool draw_overlay, QString ip_addr, int i
 }
 
 void CVIONode::process() {
-    cv::Mat frame, scale_frame;
+    cv::Mat frame;
     bool draw_overlay = !overlay_name.isEmpty();
     if (draw_overlay)
         cv::namedWindow(overlay_name.toStdString(), CV_WINDOW_AUTOSIZE);
     clock_t t1 = clock();
     while(in_stream.read(frame)) {
-        cv::resize(frame, scale_frame, cv::Size(), 400. / frame.cols, 400. / frame.cols);
-        process_data = CVProcessData(video_name, scale_frame, frame_number, get_fps(), draw_overlay);
-        emit nextNode(process_data);
+        video_timings[frame_number] = {clock(), nodes_number};
+        process_data = CVProcessData(video_name, frame, frame_number, get_fps(), draw_overlay);
+        emit nextNode(process_data, this);
         usleep(get_delay((unsigned int)((double) (clock() - t1) / CLOCKS_PER_SEC) * 1000000));
         cv::Mat overlay = video_data[video_name].overlay;
         if (!overlay.empty()) {
@@ -87,6 +87,12 @@ void CVIONode::process() {
             udp_socket->writeDatagram(process_data.data_serialized, *udp_addr, udp_port);
 
         t1 = clock();
+
+        if (frame_number % 300 == 0)
+        {
+            std::cout << "===============================================\n";
+            emit print_stat();
+        }
     }
     cv::destroyWindow(overlay_name.toStdString());
     while (in_stream.isOpened()) in_stream.release();
@@ -104,6 +110,7 @@ CVProcessingNode::CVProcessingNode(bool ip_deliver_en, bool draw_overlay_en) :
 
 void CVProcessingNode::calcAverageTime() {
     average_time = 0.;
+
     if (fill_buf) {
         counter %= SIZE_BUF;
         for(int i = 0; i < SIZE_BUF; ++i) average_time += timings[i] / SIZE_BUF;
@@ -113,12 +120,26 @@ void CVProcessingNode::calcAverageTime() {
     }
 }
 
-void CVProcessingNode::process(CVProcessData process_data) {
+void CVProcessingNode::process(CVProcessData process_data, CVIONode *stream_node) {
     clock_t start = clock();
     QSharedPointer<CVNodeData> node_data = compute(process_data);
     process_data.data[QString(this->metaObject()->className())] = node_data;
     timings[counter++] = (double)(clock() - start) / CLOCKS_PER_SEC;
+    auto clocks = stream_node->video_timings.find(process_data.frame_num);
+    if (clocks == stream_node->video_timings.end())
+        std::cout << "Failure with video_timings number processes" << std::endl;
+    average_delay = ((double)average_delay * frame_processed + (double)(clock() - clocks->first) / CLOCKS_PER_SEC) / ++frame_processed;
     calcAverageTime();
+
+    if (--clocks->second == 0)
+        stream_node->video_timings.erase(clocks);
     emit pushLog(process_data.video_name, make_log(node_data));
-    emit nextNode(process_data);
+    emit nextNode(process_data, stream_node);
+}
+
+void CVProcessingNode::printStat() {
+    ip_mutex->lock();
+    std::cout << "Thread '" << this->metaObject()->className() << "' (" << std::hex << (unsigned long)this << ") has " << std::dec << average_delay << " seconds lag" << std::endl;
+    ip_mutex->unlock();
+    emit nextStat();
 }

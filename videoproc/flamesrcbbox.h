@@ -5,6 +5,7 @@
 
 class FlameSrcBBox: public FireBBox
 {
+    Q_OBJECT
 public:
     explicit FlameSrcBBox(bool ip_del = false, bool over_draw = false);
     virtual QSharedPointer<CVKernel::CVNodeData> compute(CVKernel::CVProcessData &process_data);

@@ -90,7 +90,7 @@ namespace CVKernel {
         void addProcessingNode(CVProcessTree::Node* node);
         void purpose(CVProcessTree::Node* parent, CVProcessTree::Node* curr);
         void purpose(CVIONode* video_io, CVProcessTree::Node* root);
-        void purpose_tree(CVProcessTree::Node* node);
+        void purpose_tree(CVIONode* video_io, CVProcessTree::Node* node);
 
     private:
         struct connection {
