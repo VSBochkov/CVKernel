@@ -23,8 +23,8 @@ CVProcessData::CVProcessData(QString video_name, cv::Mat frame, int fnum, double
     data_serialized.clear();
 }
 
-CVIONode::CVIONode(int device_id, bool draw_overlay, QString ip_addr, int ip_p) :
-    QObject(NULL) {
+CVIONode::CVIONode(int device_id, bool draw_overlay, QString ip_addr, int ip_p, bool show_overlay) :
+    QObject(NULL), show_overlay(show_overlay) {
     frame_number = 1;
     if (draw_overlay)
         overlay_name = QString("device_") + QString::number(device_id);
@@ -42,8 +42,8 @@ CVIONode::CVIONode(int device_id, bool draw_overlay, QString ip_addr, int ip_p) 
     }
 }
 
-CVIONode::CVIONode(QString video_name, bool draw_overlay, QString ip_addr, int ip_p, QString over_name) :
-    QObject(NULL), video_name(video_name) {
+CVIONode::CVIONode(QString video_name, bool draw_overlay, QString ip_addr, int ip_p, QString over_name, bool show_overlay) :
+    QObject(NULL), video_name(video_name), show_overlay(show_overlay) {
     frame_number = 1;
     if (draw_overlay)
         overlay_name = over_name;
@@ -64,7 +64,7 @@ CVIONode::CVIONode(QString video_name, bool draw_overlay, QString ip_addr, int i
 void CVIONode::process() {
     cv::Mat frame;
     bool draw_overlay = !overlay_name.isEmpty();
-    if (draw_overlay)
+    if (show_overlay)
         cv::namedWindow(overlay_name.toStdString(), CV_WINDOW_AUTOSIZE);
     clock_t t1 = clock();
     while(in_stream.read(frame)) {
@@ -78,7 +78,8 @@ void CVIONode::process() {
                 out_stream.open(overlay_name.toStdString(), 1482049860, fps, overlay.size());
 
             out_stream << overlay;
-            cv::imshow(overlay_name.toStdString(), overlay);
+            if (show_overlay)
+                cv::imshow(overlay_name.toStdString(), overlay);
 
             emit save_log(video_name, frame_number);
             frame_number++;
@@ -94,7 +95,9 @@ void CVIONode::process() {
             emit print_stat();
         }
     }
-    cv::destroyWindow(overlay_name.toStdString());
+
+    if (show_overlay)
+        cv::destroyWindow(overlay_name.toStdString());
     while (in_stream.isOpened()) in_stream.release();
     emit EOS();
 }

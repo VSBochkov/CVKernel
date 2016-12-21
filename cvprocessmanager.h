@@ -68,6 +68,7 @@ namespace CVKernel {
         QString video_out;
         QString ip_addr;
         int     ip_port;
+        bool    show_overlay;
     };
 
     class CVProcessManager : QObject {
