@@ -1,0 +1,84 @@
+===============================================
+Thread 'RFireMaskingModel' (25e8f0) has 0.00152323 seconds lag
+Thread 'FireValidation' (25ec38) has 0.00284235 seconds lag
+Thread 'FireBBox' (25f0e8) has 0.00475166 seconds lag
+Thread 'FireWeightDistrib' (257498) has 0.0147882 seconds lag
+Thread 'FlameSrcBBox' (257980) has 0.0157184 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25e8f0) has 0.0015115 seconds lag
+Thread 'FireValidation' (25ec38) has 0.00298392 seconds lag
+Thread 'FireBBox' (25f0e8) has 0.00669423 seconds lag
+Thread 'FireWeightDistrib' (257498) has 0.0283252 seconds lag
+Thread 'FlameSrcBBox' (257980) has 0.0295303 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25e8f0) has 0.00154912 seconds lag
+Thread 'FireValidation' (25ec38) has 0.00302551 seconds lag
+Thread 'FireBBox' (25f0e8) has 0.00755459 seconds lag
+Thread 'FireWeightDistrib' (257498) has 0.0346642 seconds lag
+Thread 'FlameSrcBBox' (257980) has 0.0358823 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25e8f0) has 0.00156949 seconds lag
+Thread 'FireValidation' (25ec38) has 0.0030614 seconds lag
+Thread 'FireBBox' (25f0e8) has 0.00945409 seconds lag
+Thread 'FireWeightDistrib' (257498) has 0.0369078 seconds lag
+Thread 'FlameSrcBBox' (257980) has 0.038093 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25e8f0) has 0.00156785 seconds lag
+Thread 'FireValidation' (25ec38) has 0.00307283 seconds lag
+Thread 'FireBBox' (25f0e8) has 0.00928317 seconds lag
+Thread 'FireWeightDistrib' (257498) has 0.0349199 seconds lag
+Thread 'FlameSrcBBox' (257980) has 0.0360604 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25e8f0) has 0.00155679 seconds lag
+Thread 'FireValidation' (25ec38) has 0.0030605 seconds lag
+Thread 'FireBBox' (25f0e8) has 0.00912865 seconds lag
+Thread 'FireWeightDistrib' (257498) has 0.0357474 seconds lag
+Thread 'FlameSrcBBox' (257980) has 0.0368689 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25e8f0) has 0.00155709 seconds lag
+Thread 'FireValidation' (25ec38) has 0.00307522 seconds lag
+Thread 'FireBBox' (25f0e8) has 0.00900758 seconds lag
+Thread 'FireWeightDistrib' (257498) has 0.0370697 seconds lag
+Thread 'FlameSrcBBox' (257980) has 0.0382192 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25e8f0) has 0.00155239 seconds lag
+Thread 'FireValidation' (25ec38) has 0.00308386 seconds lag
+Thread 'FireBBox' (25f0e8) has 0.00874125 seconds lag
+Thread 'FireWeightDistrib' (257498) has 0.0381779 seconds lag
+Thread 'FlameSrcBBox' (257980) has 0.039371 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25e8f0) has 0.001536 seconds lag
+Thread 'FireValidation' (25ec38) has 0.00307007 seconds lag
+Thread 'FireBBox' (25f0e8) has 0.00849067 seconds lag
+Thread 'FireWeightDistrib' (257498) has 0.0377149 seconds lag
+Thread 'FlameSrcBBox' (257980) has 0.0389092 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25e8f0) has 0.00153877 seconds lag
+Thread 'FireValidation' (25ec38) has 0.00308606 seconds lag
+Thread 'FireBBox' (25f0e8) has 0.0084076 seconds lag
+Thread 'FireWeightDistrib' (257498) has 0.0383818 seconds lag
+Thread 'FlameSrcBBox' (257980) has 0.0395904 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25e8f0) has 0.00154151 seconds lag
+Thread 'FireValidation' (25ec38) has 0.00309854 seconds lag
+Thread 'FireBBox' (25f0e8) has 0.0083735 seconds lag
+Thread 'FireWeightDistrib' (257498) has 0.0389089 seconds lag
+Thread 'FlameSrcBBox' (257980) has 0.0401394 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25e8f0) has 0.00154303 seconds lag
+Thread 'FireValidation' (25ec38) has 0.00310811 seconds lag
+Thread 'FireBBox' (25f0e8) has 0.00831943 seconds lag
+Thread 'FireWeightDistrib' (257498) has 0.0394452 seconds lag
+Thread 'FlameSrcBBox' (257980) has 0.0406923 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25e8f0) has 0.0015392 seconds lag
+Thread 'FireValidation' (25ec38) has 0.00310888 seconds lag
+Thread 'FireBBox' (25f0e8) has 0.00831993 seconds lag
+Thread 'FireWeightDistrib' (257498) has 0.0399693 seconds lag
+Thread 'FlameSrcBBox' (257980) has 0.0412194 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25e8f0) has 0.00154047 seconds lag
+Thread 'FireValidation' (25ec38) has 0.00311398 seconds lag
+Thread 'FireBBox' (25f0e8) has 0.00832225 seconds lag
+Thread 'FireWeightDistrib' (257498) has 0.0404421 seconds lag
+Thread 'FlameSrcBBox' (257980) has 0.0417047 seconds lag
