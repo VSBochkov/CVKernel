@@ -23,8 +23,8 @@ CVProcessData::CVProcessData(QString video_name, cv::Mat frame, int fnum, double
     data_serialized.clear();
 }
 
-CVIONode::CVIONode(int device_id, bool draw_overlay, QString ip_addr, int ip_p, bool show_overlay) :
-    QObject(NULL), show_overlay(show_overlay) {
+CVIONode::CVIONode(int device_id, bool draw_overlay, QString ip_addr, int ip_p, bool show_overlay, double proc_frame_scale) :
+    QObject(NULL), show_overlay(show_overlay), proc_frame_scale(proc_frame_scale) {
     frame_number = 1;
     if (draw_overlay)
         overlay_name = QString("device_") + QString::number(device_id);
@@ -42,8 +42,8 @@ CVIONode::CVIONode(int device_id, bool draw_overlay, QString ip_addr, int ip_p, 
     }
 }
 
-CVIONode::CVIONode(QString video_name, bool draw_overlay, QString ip_addr, int ip_p, QString over_name, bool show_overlay) :
-    QObject(NULL), video_name(video_name), show_overlay(show_overlay) {
+CVIONode::CVIONode(QString video_name, bool draw_overlay, QString ip_addr, int ip_p, QString over_name, bool show_overlay, double proc_frame_scale) :
+    QObject(NULL), video_name(video_name), show_overlay(show_overlay), proc_frame_scale(proc_frame_scale) {
     frame_number = 1;
     if (draw_overlay)
         overlay_name = over_name;
@@ -62,14 +62,18 @@ CVIONode::CVIONode(QString video_name, bool draw_overlay, QString ip_addr, int i
 }
 
 void CVIONode::process() {
-    cv::Mat frame;
+    cv::Mat frame, scaled;
     bool draw_overlay = !overlay_name.isEmpty();
     if (show_overlay)
         cv::namedWindow(overlay_name.toStdString(), CV_WINDOW_AUTOSIZE);
     clock_t t1 = clock();
     while(in_stream.read(frame)) {
         video_timings[frame_number] = {clock(), nodes_number};
-        process_data = CVProcessData(video_name, frame, frame_number, get_fps(), draw_overlay);
+        if (proc_frame_scale < 1.)
+            cv::resize(frame, scaled, cv::Size(), proc_frame_scale, proc_frame_scale);
+        else
+            scaled = frame;
+        process_data = CVProcessData(video_name, scaled, frame_number, get_fps(), draw_overlay);
         emit nextNode(process_data, this);
         usleep(get_delay((unsigned int)((double) (clock() - t1) / CLOCKS_PER_SEC) * 1000000));
         cv::Mat overlay = video_data[video_name].overlay;

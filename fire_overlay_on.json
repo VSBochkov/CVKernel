@@ -1,6 +1,6 @@
 {
-  "file_input": "../videos/fire4hmob.mp4",
-  "file_output": "../videos/overlay4hmob.avi",
+  "file_input": "../videos/fire4mob.mp4",
+  "file_output": "../videos/overlay4mob.avi",
   "process": [{
       "node": "r_firemm",
       "children": [{
@@ -22,5 +22,6 @@
   }],
   "ip_address": "127.0.0.1",
   "ip_port": 7777,
-  "show_overlay": false
+  "show_overlay": false,
+  "proc_frame_scale": 0.75
 }

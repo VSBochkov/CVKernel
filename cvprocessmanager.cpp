@@ -131,7 +131,8 @@ void CVProcessManager::addNewStream(CVForestParser &forest) {
                                                  !forest.video_out.isEmpty(),
                                                  forest.ip_addr,
                                                  forest.ip_port,
-                                                 forest.show_overlay
+                                                 forest.show_overlay,
+                                                 forest.proc_frame_scale
                                              ) :
                                              new CVIONode(
                                                  forest.video_in,
@@ -139,7 +140,8 @@ void CVProcessManager::addNewStream(CVForestParser &forest) {
                                                  forest.ip_addr,
                                                  forest.ip_port,
                                                  forest.video_out,
-                                                 forest.show_overlay
+                                                 forest.show_overlay,
+                                                 forest.proc_frame_scale
                                                  )
                                              );
     QThread* io_thread = new QThread(this);
@@ -182,6 +184,7 @@ CVForestParser& CVForestParser::parseJSON(QString json_fname) {
     ip_addr = json_obj["ip_address"].isUndefined() ? "" : QString(json_obj["ip_address"].toString());
     ip_port = json_obj["ip_port"].isUndefined() ? 0 : json_obj["ip_port"].toInt();
     show_overlay = json_obj["show_overlay"].isUndefined() ? false : json_obj["show_overlay"].toBool();
+    proc_frame_scale = json_obj["proc_frame_scale"].isUndefined() ? 1. : json_obj["proc_frame_scale"].toDouble();
 
     QJsonArray forest = json_obj["process"].toArray();
     proc_forest.reserve(forest.size());
