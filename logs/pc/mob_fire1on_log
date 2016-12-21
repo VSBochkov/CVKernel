@@ -1,0 +1,24 @@
+===============================================
+Thread 'RFireMaskingModel' (2ae2800) has 0.00433756 seconds lag
+Thread 'FireValidation' (2ae2d40) has 0.00616477 seconds lag
+Thread 'FireBBox' (2ae3330) has 0.00882051 seconds lag
+Thread 'FireWeightDistrib' (2ae3910) has 0.0475739 seconds lag
+Thread 'FlameSrcBBox' (2ae3f80) has 0.0483752 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (2ae2800) has 0.00445628 seconds lag
+Thread 'FireValidation' (2ae2d40) has 0.00629797 seconds lag
+Thread 'FireBBox' (2ae3330) has 0.0085754 seconds lag
+Thread 'FireWeightDistrib' (2ae3910) has 0.050425 seconds lag
+Thread 'FlameSrcBBox' (2ae3f80) has 0.0512851 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (2ae2800) has 0.00448444 seconds lag
+Thread 'FireValidation' (2ae2d40) has 0.00632963 seconds lag
+Thread 'FireBBox' (2ae3330) has 0.00860671 seconds lag
+Thread 'FireWeightDistrib' (2ae3910) has 0.0531533 seconds lag
+Thread 'FlameSrcBBox' (2ae3f80) has 0.0540667 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (2ae2800) has 0.0045126 seconds lag
+Thread 'FireValidation' (2ae2d40) has 0.00636296 seconds lag
+Thread 'FireBBox' (2ae3330) has 0.00861372 seconds lag
+Thread 'FireWeightDistrib' (2ae3910) has 0.0527337 seconds lag
+Thread 'FlameSrcBBox' (2ae3f80) has 0.0536475 seconds lag

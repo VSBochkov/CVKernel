@@ -1,0 +1,24 @@
+===============================================
+Thread 'RFireMaskingModel' (cda250) has 0.00284809 seconds lag
+Thread 'FireValidation' (cda890) has 0.00452738 seconds lag
+Thread 'FireBBox' (cdae10) has 1.61373 seconds lag
+Thread 'FireWeightDistrib' (cdb530) has 1.61932 seconds lag
+Thread 'FlameSrcBBox' (cdbdb0) has 1.61979 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (cda250) has 0.00247118 seconds lag
+Thread 'FireValidation' (cda890) has 0.00407109 seconds lag
+Thread 'FireBBox' (cdae10) has 1.84936 seconds lag
+Thread 'FireWeightDistrib' (cdb530) has 1.85381 seconds lag
+Thread 'FlameSrcBBox' (cdbdb0) has 1.85428 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (cda250) has 0.00306791 seconds lag
+Thread 'FireValidation' (cda890) has 0.00496777 seconds lag
+Thread 'FireBBox' (cdae10) has 1.26151 seconds lag
+Thread 'FireWeightDistrib' (cdb530) has 1.26829 seconds lag
+Thread 'FlameSrcBBox' (cdbdb0) has 1.26878 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (cda250) has 0.00341197 seconds lag
+Thread 'FireValidation' (cda890) has 0.00555548 seconds lag
+Thread 'FireBBox' (cdae10) has 0.949064 seconds lag
+Thread 'FireWeightDistrib' (cdb530) has 0.957135 seconds lag
+Thread 'FlameSrcBBox' (cdbdb0) has 0.957632 seconds lag
