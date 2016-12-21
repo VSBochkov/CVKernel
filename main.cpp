@@ -5,7 +5,7 @@
 
 int main(int argc, char *argv[])
 {
-    QApplication app(argc, argv);
+    QCoreApplication app(argc, argv);
 
     std::string json_file;
     if (argc > 1) {

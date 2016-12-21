@@ -1,6 +1,6 @@
 {
-  "file_input": "../videos/fire1vga.mp4",
-  "file_output": "../videos/overlay1vga.avi",
+  "file_input": "../videos/fire2mob.mp4",
+  "file_output": "../videos/overlay2mob.avi",
   "process": [{
       "node": "r_firemm",
       "children": [{
