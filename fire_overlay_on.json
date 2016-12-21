@@ -1,6 +1,6 @@
 {
-  "file_input": "../videos/fire2mob.mp4",
-  "file_output": "../videos/overlay2mob.avi",
+  "file_input": "../videos/fire4mob.mp4",
+  "file_output": "../videos/overlay4mob.avi",
   "process": [{
       "node": "r_firemm",
       "children": [{

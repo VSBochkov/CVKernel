@@ -1,0 +1,80 @@
+===============================================
+Thread 'RFireMaskingModel' (177d840) has 0.00679235 seconds lag
+Thread 'FireValidation' (1782f60) has 0.0147004 seconds lag
+Thread 'FireBBox' (17833e8) has 0.0514915 seconds lag
+Thread 'FireWeightDistrib' (1783860) has 0.265098 seconds lag
+Thread 'FlameSrcBBox' (1783d20) has 0.273262 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (177d840) has 0.00710968 seconds lag
+Thread 'FireValidation' (1782f60) has 0.0154164 seconds lag
+Thread 'FireBBox' (17833e8) has 0.362081 seconds lag
+Thread 'FireWeightDistrib' (1783860) has 0.609348 seconds lag
+Thread 'FlameSrcBBox' (1783d20) has 0.620631 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (177d840) has 0.00755485 seconds lag
+Thread 'FireValidation' (1782f60) has 0.0166297 seconds lag
+Thread 'FireBBox' (17833e8) has 0.699681 seconds lag
+Thread 'FireWeightDistrib' (1783860) has 3.38832 seconds lag
+Thread 'FlameSrcBBox' (1783d20) has 3.4012 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (177d840) has 0.00778528 seconds lag
+Thread 'FireValidation' (1782f60) has 0.0171977 seconds lag
+Thread 'FireBBox' (17833e8) has 4.22823 seconds lag
+Thread 'FireWeightDistrib' (1783860) has 8.26074 seconds lag
+Thread 'FlameSrcBBox' (1783d20) has 8.27282 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (177d840) has 0.00783077 seconds lag
+Thread 'FireValidation' (1782f60) has 0.016997 seconds lag
+Thread 'FireBBox' (17833e8) has 10.6984 seconds lag
+Thread 'FireWeightDistrib' (1783860) has 14.0211 seconds lag
+Thread 'FlameSrcBBox' (1783d20) has 14.0326 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (177d840) has 0.00804467 seconds lag
+Thread 'FireValidation' (1782f60) has 0.0172843 seconds lag
+Thread 'FireBBox' (17833e8) has 16.365 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (177d840) has 0.00808182 seconds lag
+Thread 'FireValidation' (1782f60) has 0.0177159 seconds lag
+Thread 'FireWeightDistrib' (1783860) has 20.2475 seconds lag
+Thread 'FlameSrcBBox' (1783d20) has 20.2589 seconds lag
+Thread 'FireBBox' (17833e8) has 18.2754 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (177d840) has 0.00810673 seconds lag
+Thread 'FireValidation' (1782f60) has 0.0177148 seconds lag
+Thread 'FireBBox' (17833e8) has 16.265 seconds lag
+Thread 'FireWeightDistrib' (1783860) has 26.4808 seconds lag
+Thread 'FlameSrcBBox' (1783d20) has 26.4928 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (177d840) has 0.00809863 seconds lag
+Thread 'FireValidation' (1782f60) has 0.0177086 seconds lag
+Thread 'FireBBox' (17833e8) has 14.4656 seconds lag
+Thread 'FireWeightDistrib' (1783860) has 31.0372 seconds lag
+Thread 'FlameSrcBBox' (1783d20) has 31.0498 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (177d840) has 0.00806161 seconds lag
+Thread 'FireValidation' (1782f60) has 0.0176687 seconds lag
+Thread 'FireBBox' (17833e8) has 13.0288 seconds lag
+Thread 'FireWeightDistrib' (1783860) has 34.814 seconds lag
+Thread 'FlameSrcBBox' (1783d20) has 34.8267 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (177d840) has 0.00798832 seconds lag
+Thread 'FireValidation' (1782f60) has 0.0176768 seconds lag
+Thread 'FireBBox' (17833e8) has 11.853 seconds lag
+Thread 'FireWeightDistrib' (1783860) has 38.2174 seconds lag
+Thread 'FlameSrcBBox' (1783d20) has 38.2304 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (177d840) has 0.00796854 seconds lag
+Thread 'FireValidation' (1782f60) has 0.0175839 seconds lag
+Thread 'FireBBox' (17833e8) has 10.8751 seconds lag
+Thread 'FireWeightDistrib' (1783860) has 42.0254 seconds lag
+Thread 'FlameSrcBBox' (1783d20) has 42.0389 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (177d840) has 0.00799014 seconds lag
+Thread 'FireValidation' (1782f60) has 0.0176449 seconds lag
+Thread 'FireBBox' (17833e8) has 10.0488 seconds lag
+Thread 'FireWeightDistrib' (1783860) has 46.0871 seconds lag
+Thread 'FlameSrcBBox' (1783d20) has 46.1009 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (177d840) has 0.0080195 seconds lag
+Thread 'FireValidation' (1782f60) has 0.0177151 seconds lag
+Thread 'FireBBox' (17833e8) has 9.36146 seconds lag
