@@ -42,8 +42,8 @@ namespace CVKernel {
     class CVIONode : public QObject {
         Q_OBJECT
     public:
-        explicit CVIONode(QString video_name = "", bool draw_overlay = false, QString ip_addr = "", int ip_p = 0, QString overlay_name = "", bool show_overlay = false, double proc_frame_scale = 1.);
-        explicit CVIONode(int device_id = 0, bool draw_overlay = false, QString ip_addr = "", int ip_p = 0, bool show_overlay = false, double proc_frame_scale = 1.);
+        explicit CVIONode(QString video_name = "", bool draw_overlay = false, QString ip_addr = "", int ip_p = 0, QString overlay_name = "", bool show_overlay = false);
+        explicit CVIONode(int device_id = 0, bool draw_overlay = false, QString ip_addr = "", int ip_p = 0, bool show_overlay = false);
         virtual ~CVIONode() {
             if (udp_addr == nullptr)
                 return;
