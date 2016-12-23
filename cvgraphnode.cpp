@@ -117,6 +117,7 @@ void CVIONode::process() {
     if (show_overlay)
         cv::destroyWindow(overlay_name.toStdString());
     while (in_stream.isOpened()) in_stream.release();
+    std::cout << "===============================================\nEnd of Stream\n";
     if (store_output)
         storeLog();
     emit EOS();
@@ -159,6 +160,7 @@ void CVIONode::storeLog() {
     QTextStream stream(&json_file);
     stream << jdoc.toJson();
     json_file.close();
+    std::cout << "Log has saved." << std::endl;
 }
 
 
