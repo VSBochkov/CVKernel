@@ -1,0 +1,24 @@
+===============================================
+Thread 'RFireMaskingModel' (1428540) has 0.00205348 seconds lag
+Thread 'FireValidation' (14288a8) has 0.00414634 seconds lag
+Thread 'FireBBox' (1428d28) has 0.00643217 seconds lag
+Thread 'FireWeightDistrib' (1429158) has 0.0507448 seconds lag
+Thread 'FlameSrcBBox' (1429640) has 0.0521973 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (1428540) has 0.00215802 seconds lag
+Thread 'FireValidation' (14288a8) has 0.00427873 seconds lag
+Thread 'FireBBox' (1428d28) has 0.0073601 seconds lag
+Thread 'FireWeightDistrib' (1429158) has 0.0548375 seconds lag
+Thread 'FlameSrcBBox' (1429640) has 0.0563552 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (1428540) has 0.00218084 seconds lag
+Thread 'FireValidation' (14288a8) has 0.0043138 seconds lag
+Thread 'FireBBox' (1428d28) has 0.00766028 seconds lag
+Thread 'FireWeightDistrib' (1429158) has 0.0592282 seconds lag
+Thread 'FlameSrcBBox' (1429640) has 0.0607938 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (1428540) has 0.00214069 seconds lag
+Thread 'FireValidation' (14288a8) has 0.00424794 seconds lag
+Thread 'FireBBox' (1428d28) has 0.00735321 seconds lag
+Thread 'FireWeightDistrib' (1429158) has 0.0547129 seconds lag
+Thread 'FlameSrcBBox' (1429640) has 0.0562259 seconds lag

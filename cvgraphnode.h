@@ -42,8 +42,8 @@ namespace CVKernel {
     class CVIONode : public QObject {
         Q_OBJECT
     public:
-        explicit CVIONode(QString video_name = "", bool draw_overlay = false, QString ip_addr = "", int ip_p = 0, QString overlay_name = "", bool show_overlay = false);
-        explicit CVIONode(int device_id = 0, bool draw_overlay = false, QString ip_addr = "", int ip_p = 0, bool show_overlay = false);
+        explicit CVIONode(QString video_name = "", bool draw_overlay = false, QString ip_addr = "", int ip_p = 0, QString overlay_name = "", bool show_overlay = false, bool store_output = false, int frame_width = 320, int frame_height = 240);
+        explicit CVIONode(int device_id = 0, bool draw_overlay = false, QString ip_addr = "", int ip_p = 0, bool show_overlay = false, bool store_output = false, int frame_width = 320, int frame_height = 240);
         virtual ~CVIONode() {
             if (udp_addr == nullptr)
                 return;
@@ -60,7 +60,6 @@ namespace CVKernel {
         }
 
     signals:
-        void save_log(QString video_name, int frame_num);
         void nextNode(CVProcessData process_data, CVIONode *stream_node);
         void EOS();
         void print_stat();
@@ -68,16 +67,14 @@ namespace CVKernel {
     public slots:
         void process();
 
-    public:
-        QMap<int, std::pair<clock_t,int>> video_timings;
-        int nodes_number;
+    private:
+        void storeLog();
 
     private:
         cv::VideoCapture in_stream;
         QString video_name;
         cv::VideoWriter out_stream;
         QString overlay_name;
-        int frame_number;
         double fps;
         QHostAddress* udp_addr;
         quint16 udp_port;
@@ -85,6 +82,15 @@ namespace CVKernel {
         QUdpSocket* udp_socket;
         bool show_overlay;
         double proc_frame_scale;
+
+    public:
+        QMap<int, std::pair<clock_t,int>> video_timings;
+        QMap<std::pair<int, QString>, QSharedPointer<CVNodeData>> stored_output;
+        bool store_output;
+        int nodes_number;
+        int frame_number;
+        int frame_width;
+        int frame_height;
     };
 
     class CVProcessingNode : public QObject {

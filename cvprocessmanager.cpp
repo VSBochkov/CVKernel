@@ -131,7 +131,10 @@ void CVProcessManager::addNewStream(CVForestParser &forest) {
                                                  !forest.video_out.isEmpty(),
                                                  forest.ip_addr,
                                                  forest.ip_port,
-                                                 forest.show_overlay
+                                                 forest.show_overlay,
+                                                 forest.store_output,
+                                                 forest.frame_width,
+                                                 forest.frame_height
                                              ) :
                                              new CVIONode(
                                                  forest.video_in,
@@ -139,7 +142,10 @@ void CVProcessManager::addNewStream(CVForestParser &forest) {
                                                  forest.ip_addr,
                                                  forest.ip_port,
                                                  forest.video_out,
-                                                 forest.show_overlay
+                                                 forest.show_overlay,
+                                                 forest.store_output,
+                                                 forest.frame_width,
+                                                 forest.frame_height
                                              ));
     QThread* io_thread = new QThread(this);
     io->moveToThread(io_thread);
@@ -181,6 +187,9 @@ CVForestParser& CVForestParser::parseJSON(QString json_fname) {
     ip_addr = json_obj["ip_address"].isUndefined() ? "" : QString(json_obj["ip_address"].toString());
     ip_port = json_obj["ip_port"].isUndefined() ? 0 : json_obj["ip_port"].toInt();
     show_overlay = json_obj["show_overlay"].isUndefined() ? false : json_obj["show_overlay"].toBool();
+    store_output = json_obj["store_output"].isUndefined() ? false : json_obj["store_output"].toBool();
+    frame_width = json_obj["frame_width"].isUndefined() ? 320 : json_obj["frame_width"].toInt();
+    frame_height = json_obj["frame_height"].isUndefined() ? 240 : json_obj["frame_height"].toInt();
 
     QJsonArray forest = json_obj["process"].toArray();
     proc_forest.reserve(forest.size());

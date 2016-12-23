@@ -1,6 +1,6 @@
 {
-  "file_input": "../videos/fire4mob.mp4",
-  "file_output": "../videos/overlay4mob.avi",
+  "file_input": "../videos/fire3mob.mp4",
+  "file_output": "../videos/overlay3nob.avi",
   "process": [{
       "node": "r_firemm",
       "children": [{
@@ -9,10 +9,8 @@
           "node": "fire_bbox",
           "children": [{
             "node": "fire_weights",
-            "draw_overlay": false,
             "children": [{
               "node": "flame_src_bbox",
-              "draw_overlay": false,
               "ip_deliver": true,
               "children": []
             }]          
@@ -23,5 +21,7 @@
   "ip_address": "127.0.0.1",
   "ip_port": 7777,
   "show_overlay": false,
-  "proc_frame_scale": 0.4
+  "store_output": true,
+  "frame_width": 320,
+  "frame_height": 182
 }

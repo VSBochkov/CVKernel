@@ -69,7 +69,10 @@ namespace CVKernel {
         QString ip_addr;
         int     ip_port;
         bool    show_overlay;
+        bool    store_output;
         double  proc_frame_scale;
+        int     frame_width;
+        int     frame_height;
     };
 
     class CVProcessManager : QObject {

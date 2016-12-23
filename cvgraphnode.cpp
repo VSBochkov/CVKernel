@@ -5,8 +5,17 @@
 #include <QTimer>
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <utility>
 #include <unistd.h>
 #include <time.h>
+
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonValue>
+
+#include "videoproc/firebbox.h"
 
 using namespace CVKernel;
 QMap<QString, VideoData> CVKernel::video_data;
@@ -23,8 +32,12 @@ CVProcessData::CVProcessData(QString video_name, cv::Mat frame, int fnum, double
     data_serialized.clear();
 }
 
-CVIONode::CVIONode(int device_id, bool draw_overlay, QString ip_addr, int ip_p, bool show_overlay) :
-    QObject(NULL), show_overlay(show_overlay) {
+CVIONode::CVIONode(
+        int device_id, bool draw_overlay, QString ip_addr,
+        int ip_p, bool show_overlay, bool store_output,
+        int frame_width, int frame_height
+) : QObject(NULL), show_overlay(show_overlay), store_output(store_output),
+    frame_width(frame_width), frame_height(frame_height) {
     frame_number = 1;
     if (draw_overlay)
         overlay_name = QString("device_") + QString::number(device_id);
@@ -39,11 +52,17 @@ CVIONode::CVIONode(int device_id, bool draw_overlay, QString ip_addr, int ip_p, 
     if (!in_stream.isOpened()) {
         in_stream.open(device_id);
         fps = in_stream.get(CV_CAP_PROP_FPS) > 1.0 ? in_stream.get(CV_CAP_PROP_FPS) : 30.;
+        in_stream.set(CV_CAP_PROP_FRAME_WIDTH, frame_width);
+        in_stream.set(CV_CAP_PROP_FRAME_HEIGHT, frame_height);
     }
 }
 
-CVIONode::CVIONode(QString video_name, bool draw_overlay, QString ip_addr, int ip_p, QString over_name, bool show_overlay) :
-    QObject(NULL), video_name(video_name), show_overlay(show_overlay) {
+CVIONode::CVIONode(
+        QString video_name, bool draw_overlay, QString ip_addr, int ip_p,
+        QString over_name, bool show_overlay, bool store_output,
+        int frame_width, int frame_height
+) : QObject(NULL), video_name(video_name), show_overlay(show_overlay), store_output(store_output),
+    frame_width(frame_width), frame_height(frame_height) {
     frame_number = 1;
     if (draw_overlay)
         overlay_name = over_name;
@@ -81,7 +100,6 @@ void CVIONode::process() {
             if (show_overlay)
                 cv::imshow(overlay_name.toStdString(), overlay);
 
-            emit save_log(video_name, frame_number);
             frame_number++;
         }
         if (!process_data.data_serialized.isEmpty())
@@ -99,8 +117,50 @@ void CVIONode::process() {
     if (show_overlay)
         cv::destroyWindow(overlay_name.toStdString());
     while (in_stream.isOpened()) in_stream.release();
+    if (store_output)
+        storeLog();
     emit EOS();
 }
+
+void CVIONode::storeLog() {
+    QJsonArray video;
+
+    QMapIterator<std::pair<int, QString>, QSharedPointer<CVNodeData>> it(stored_output);
+    while (it.hasNext()) {
+        it.next();
+        QJsonObject flameObjs;
+        if (it.key().second == "FlameSrcBBox")
+        {
+            QJsonArray bboxes;
+            QSharedPointer<DataFireBBox> flame_src_bboxes = it.value().dynamicCast<DataFireBBox>();
+            for (auto& bbox : flame_src_bboxes->fire_bboxes)
+            {
+                QJsonObject rect;
+                rect["x"] = ((double) bbox.rect.x / frame_width) * 100;
+                rect["y"] = ((double) bbox.rect.y / frame_height) * 100;
+                rect["w"] = ((double) (bbox.rect.x + bbox.rect.width) / frame_width) * 100;
+                rect["h"] = ((double) (bbox.rect.y + bbox.rect.height) / frame_height) * 100;
+                bboxes.append(rect);
+            }
+            flameObjs["frame_num"] = it.key().first;
+            flameObjs["bboxes"] = bboxes;
+        }
+        video.append(flameObjs);
+    }
+
+    QJsonDocument jdoc(video);
+
+    QString json = overlay_name + "_log.json";
+
+    QFile json_file(json);
+    if (!json_file.open(QIODevice::WriteOnly | QIODevice::Text))
+        return;
+
+    QTextStream stream(&json_file);
+    stream << jdoc.toJson();
+    json_file.close();
+}
+
 
 CVProcessingNode::CVProcessingNode(bool ip_deliver_en, bool draw_overlay_en) :
     QObject(nullptr), ip_mutex(new QMutex) {
@@ -129,10 +189,11 @@ void CVProcessingNode::process(CVProcessData process_data, CVIONode *stream_node
     process_data.data[QString(this->metaObject()->className())] = node_data;
     timings[counter++] = (double)(clock() - start) / CLOCKS_PER_SEC;
     auto clocks = stream_node->video_timings.find(process_data.frame_num);
-    if (clocks == stream_node->video_timings.end())
-        std::cout << "Failure with video_timings number processes" << std::endl;
     average_delay = ((double)average_delay * frame_processed + (double)(clock() - clocks->first) / CLOCKS_PER_SEC) / ++frame_processed;
     calcAverageTime();
+
+    if (stream_node->store_output and ip_deliever)
+        stream_node->stored_output[std::make_pair(stream_node->frame_number, this->metaObject()->className())] = node_data;
 
     if (--clocks->second == 0)
         stream_node->video_timings.erase(clocks);
