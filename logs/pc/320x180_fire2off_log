@@ -1,0 +1,27 @@
+===============================================
+Thread 'RFireMaskingModel' (ff3240) has 0.004635 seconds lag
+Thread 'FireValidation' (ff35b0) has 0.00690727 seconds lag
+Thread 'FireBBox' (ff3a70) has 0.0085948 seconds lag
+Thread 'FireWeightDistrib' (ff4010) has 0.0362296 seconds lag
+Thread 'FlameSrcBBox' (ff4640) has 0.0369269 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (ff3240) has 0.00446596 seconds lag
+Thread 'FireValidation' (ff35b0) has 0.00670435 seconds lag
+Thread 'FireBBox' (ff3a70) has 0.00920269 seconds lag
+Thread 'FireWeightDistrib' (ff4010) has 0.0395608 seconds lag
+Thread 'FlameSrcBBox' (ff4640) has 0.0403128 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (ff3240) has 0.00437229 seconds lag
+Thread 'FireValidation' (ff35b0) has 0.00660591 seconds lag
+Thread 'FireBBox' (ff3a70) has 0.00928672 seconds lag
+Thread 'FireWeightDistrib' (ff4010) has 0.0427547 seconds lag
+Thread 'FlameSrcBBox' (ff4640) has 0.0435224 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (ff3240) has 0.00437828 seconds lag
+Thread 'FireValidation' (ff35b0) has 0.00660118 seconds lag
+Thread 'FireBBox' (ff3a70) has 0.00904939 seconds lag
+Thread 'FireWeightDistrib' (ff4010) has 0.0411619 seconds lag
+Thread 'FlameSrcBBox' (ff4640) has 0.0419065 seconds lag
+===============================================
+End of Stream
+Log has saved.

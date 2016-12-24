@@ -1,0 +1,33 @@
+===============================================
+Thread 'RFireMaskingModel' (25cd570) has 0.00439902 seconds lag
+Thread 'FireValidation' (25cd8e0) has 0.00637576 seconds lag
+Thread 'FireBBox' (25cde90) has 0.00864488 seconds lag
+Thread 'FireWeightDistrib' (25ce430) has 0.0471948 seconds lag
+Thread 'FlameSrcBBox' (25cea60) has 0.0480313 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25cd570) has 0.00450821 seconds lag
+Thread 'FireValidation' (25cd8e0) has 0.0065689 seconds lag
+Thread 'FireBBox' (25cde90) has 0.00851057 seconds lag
+Thread 'FireWeightDistrib' (25ce430) has 0.0487605 seconds lag
+Thread 'FlameSrcBBox' (25cea60) has 0.0496452 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25cd570) has 0.00447999 seconds lag
+Thread 'FireValidation' (25cd8e0) has 0.00654383 seconds lag
+Thread 'FireBBox' (25cde90) has 0.00843512 seconds lag
+Thread 'FireWeightDistrib' (25ce430) has 0.049376 seconds lag
+Thread 'FlameSrcBBox' (25cea60) has 0.0502688 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25cd570) has 0.00450751 seconds lag
+Thread 'FireValidation' (25cd8e0) has 0.00659541 seconds lag
+Thread 'FireBBox' (25cde90) has 0.00854491 seconds lag
+Thread 'FireWeightDistrib' (25ce430) has 0.0509369 seconds lag
+Thread 'FlameSrcBBox' (25cea60) has 0.0518651 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (25cd570) has 0.00450323 seconds lag
+Thread 'FireValidation' (25cd8e0) has 0.00658622 seconds lag
+Thread 'FireBBox' (25cde90) has 0.00848855 seconds lag
+Thread 'FireWeightDistrib' (25ce430) has 0.050128 seconds lag
+Thread 'FlameSrcBBox' (25cea60) has 0.0510686 seconds lag
+===============================================
+End of Stream
+Log has saved.

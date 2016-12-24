@@ -1,0 +1,27 @@
+===============================================
+Thread 'RFireMaskingModel' (1ffe5d8) has 0.00282334 seconds lag
+Thread 'FireValidation' (20047c0) has 0.00740946 seconds lag
+Thread 'FireBBox' (1ffd120) has 3.18233 seconds lag
+Thread 'FireWeightDistrib' (1ffd5e8) has 3.19373 seconds lag
+Thread 'FlameSrcBBox' (1ffdad0) has 3.19578 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (1ffe5d8) has 0.0032954 seconds lag
+Thread 'FireValidation' (20047c0) has 0.00886727 seconds lag
+Thread 'FireBBox' (1ffd120) has 6.56739 seconds lag
+Thread 'FireWeightDistrib' (1ffd5e8) has 6.5795 seconds lag
+Thread 'FlameSrcBBox' (1ffdad0) has 6.58256 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (1ffe5d8) has 0.003389 seconds lag
+Thread 'FireValidation' (20047c0) has 0.00878186 seconds lag
+Thread 'FireBBox' (1ffd120) has 5.75221 seconds lag
+Thread 'FireWeightDistrib' (1ffd5e8) has 5.7996 seconds lag
+Thread 'FlameSrcBBox' (1ffdad0) has 5.80316 seconds lag
+===============================================
+Thread 'RFireMaskingModel' (1ffe5d8) has 0.00312801 seconds lag
+Thread 'FireValidation' (20047c0) has 0.00837579 seconds lag
+Thread 'FireBBox' (1ffd120) has 4.31606 seconds lag
+Thread 'FireWeightDistrib' (1ffd5e8) has 4.35285 seconds lag
+Thread 'FlameSrcBBox' (1ffdad0) has 4.35582 seconds lag
+===============================================
+End of Stream
+Log has saved.
