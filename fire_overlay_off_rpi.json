@@ -1,6 +1,6 @@
 {
-  "file_input": "../videos/fire1rpi.mp4",
-  "file_output": "../videos/overlay1rpi.avi",
+  "file_input": "../videos/fire4rpi.mp4",
+  "file_output": "../videos/overlay4rpi.avi",
   "process": [{
       "node": "r_firemm",
       "children": [{
