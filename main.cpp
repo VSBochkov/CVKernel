@@ -10,11 +10,19 @@ int main(int argc, char *argv[])
     std::string json_file;
     if (argc > 1) {
         if (strcmp(argv[1], "off") == 0)
-            json_file = "../fire_overlay_off.json";
+            json_file = "../fire_overlay_off";
         else
-            json_file = "../fire_overlay_on.json";
+            json_file = "../fire_overlay_on";
     } else
-        json_file = "../fire_overlay_on.json";
+        json_file = "../fire_overlay_on";
+
+    if (argc > 2) {
+        if (strcmp(argv[2], "rpi") == 0)
+            json_file += "_rpi.json";
+        else
+            json_file += "_pc.json";
+    } else
+        json_file += "_pc.json";
 
     qRegisterMetaType<CVKernel::CVProcessData>("CVProcessData");
     CVKernel::CVProcessManager *manager(new CVKernel::CVProcessManager());
