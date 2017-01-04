@@ -34,7 +34,7 @@ CVProcessData::CVProcessData(QString video_name, cv::Mat frame, int fnum, double
 
 CVIONode::CVIONode(
         int device_id, bool draw_overlay, QString cli_udp_addr,
-        int cli_udp_p, int srv_unix_p, bool show_overlay, bool store_output,
+        int cli_udp_p, QString srv_unix_dst, bool show_overlay, bool store_output,
         int frame_width, int frame_height
 ) : QObject(NULL), show_overlay(show_overlay), store_output(store_output),
     frame_width(frame_width), frame_height(frame_height) {
@@ -49,10 +49,11 @@ CVIONode::CVIONode(
         client_udp_socket = nullptr;
         client_tx_meta_udp_addr = nullptr;
     }
-    if (srv_unix_p != 0) {
+    if (!srv_unix_dst.isEmpty()) {
         server_unix_socket = new QLocalSocket(this);
+        server_unix_socket->setServerName(srv_unix_dst);
+        connect(server_unix_socket, SIGNAL(readyRead()), this, SLOT(getState()));
         server_unix_socket->waitForConnected(-1);
-        server_rx_state_udp_port = srv_unix_p;
         proc_enabled = process_state::disable;
     } else {
         server_unix_socket = nullptr;
@@ -68,7 +69,7 @@ CVIONode::CVIONode(
 
 CVIONode::CVIONode(
         QString video_name, bool draw_overlay, QString cli_udp_addr,
-        int cli_udp_p, int srv_unix_p, QString over_name, bool show_overlay, bool store_output,
+        int cli_udp_p, QString srv_unix_dst, QString over_name, bool show_overlay, bool store_output,
         int frame_width, int frame_height
 ) : QObject(NULL), video_name(video_name), show_overlay(show_overlay), store_output(store_output),
     frame_width(frame_width), frame_height(frame_height) {
@@ -83,12 +84,11 @@ CVIONode::CVIONode(
         client_udp_socket = nullptr;
         client_tx_meta_udp_addr = nullptr;
     }
-    if (srv_unix_p != 0) {
+    if (!srv_unix_dst.isEmpty()) {
         server_unix_socket = new QLocalSocket(this);
-        connect(server_unix_socket, SIGNAL(readyRead()), this, SLOT(getState()));
+        server_unix_socket->setServerName(srv_unix_dst);
         connect(server_unix_socket, SIGNAL(readyRead()), this, SLOT(getState()));
         server_unix_socket->waitForConnected(-1);
-        server_rx_state_udp_port = srv_unix_p;
         proc_enabled = process_state::disable;
     } else {
         server_unix_socket = nullptr;
