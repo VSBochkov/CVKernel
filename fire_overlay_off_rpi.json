@@ -18,11 +18,15 @@
         }]
       }]
   }],
-  "client_tx_meta_udp_address": "127.0.0.1",
-  "client_tx_meta_udp_port": 7777,
-  "server_rx_state_unix_dst": "/etc/cvkernel_state.sock",
   "show_overlay": false,
   "store_output": true,
   "frame_width": 200,
-  "frame_height": 112
+  "frame_height": 112,
+  
+  "meta_udp_address": "127.0.0.1",
+  "meta_udp_port": 7777,
+
+  "state_unix_dst": "/etc/cvkernel_state.sock",
+
+  "gamepad_tcp_port": 8989,
 }
