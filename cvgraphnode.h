@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QSharedPointer>
 #include <QUdpSocket>
+#include <QLocalSocket>
 #include <QMutex>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -42,14 +43,14 @@ namespace CVKernel {
     class CVIONode : public QObject {
         Q_OBJECT
     public:
-        explicit CVIONode(QString video_name = "", bool draw_overlay = false, QString ip_addr = "", int ip_p = 0, QString overlay_name = "", bool show_overlay = false, bool store_output = false, int frame_width = 320, int frame_height = 240);
-        explicit CVIONode(int device_id = 0, bool draw_overlay = false, QString ip_addr = "", int ip_p = 0, bool show_overlay = false, bool store_output = false, int frame_width = 320, int frame_height = 240);
+        explicit CVIONode(QString video_name = "", bool draw_overlay = false, QString cli_udp_addr = "", int cli_udp_p = 0, int srv_unix_p = 0, QString overlay_name = "", bool show_overlay = false, bool store_output = false, int frame_width = 320, int frame_height = 240);
+        explicit CVIONode(int device_id = 0, bool draw_overlay = false, QString cli_udp_addr = "", int cli_udp_p = 0, int srv_unix_p = 0, bool show_overlay = false, bool store_output = false, int frame_width = 320, int frame_height = 240);
         virtual ~CVIONode() {
-            if (udp_addr == nullptr)
+            if (client_tx_meta_udp_addr == nullptr)
                 return;
-            delete udp_addr;
-            udp_socket->close();
-            delete udp_socket;
+            delete client_tx_meta_udp_addr;
+            client_udp_socket->close();
+            delete client_udp_socket;
         }
 
         double get_fps() { return fps; }
@@ -66,6 +67,7 @@ namespace CVKernel {
 
     public slots:
         void process();
+        void getState();
 
     private:
         void storeLog();
@@ -76,12 +78,15 @@ namespace CVKernel {
         cv::VideoWriter out_stream;
         QString overlay_name;
         double fps;
-        QHostAddress* udp_addr;
-        quint16 udp_port;
+        QHostAddress* client_tx_meta_udp_addr;
+        quint16 client_tx_meta_udp_port;
         CVProcessData process_data;
-        QUdpSocket* udp_socket;
+        QUdpSocket* client_udp_socket;
+        QLocalSocket* server_unix_socket;
+        quint16 server_rx_state_udp_port;
         bool show_overlay;
         double proc_frame_scale;
+        enum class process_state {disable = 0, enable, conn_closed} proc_enabled;
 
     public:
         QMap<int, std::pair<clock_t,int>> video_timings;
@@ -116,8 +121,6 @@ namespace CVKernel {
         bool draw_overlay;
         bool ip_deliever;
         QSharedPointer<QMutex> ip_mutex;
-        QSharedPointer<QMutex> setup_mutex;
-        int used_counter = 0;
 
     private:
         void calcAverageTime();
@@ -128,7 +131,6 @@ namespace CVKernel {
         int frame_processed = 0;
         int counter;
         bool fill_buf;
-        bool printStatCalled = false;
     };
 }
 Q_DECLARE_METATYPE(CVKernel::CVProcessData)

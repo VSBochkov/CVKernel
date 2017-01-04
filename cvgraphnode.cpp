@@ -33,21 +33,30 @@ CVProcessData::CVProcessData(QString video_name, cv::Mat frame, int fnum, double
 }
 
 CVIONode::CVIONode(
-        int device_id, bool draw_overlay, QString ip_addr,
-        int ip_p, bool show_overlay, bool store_output,
+        int device_id, bool draw_overlay, QString cli_udp_addr,
+        int cli_udp_p, int srv_unix_p, bool show_overlay, bool store_output,
         int frame_width, int frame_height
 ) : QObject(NULL), show_overlay(show_overlay), store_output(store_output),
     frame_width(frame_width), frame_height(frame_height) {
     frame_number = 1;
     if (draw_overlay)
         overlay_name = QString("device_") + QString::number(device_id);
-    if (!ip_addr.isEmpty()) {
-        udp_socket = new QUdpSocket(this);
-        udp_addr = new QHostAddress(ip_addr);
-        udp_port = ip_p;
+    if (!cli_udp_addr.isEmpty()) {
+        client_udp_socket = new QUdpSocket(this);
+        client_tx_meta_udp_addr = new QHostAddress(cli_udp_addr);
+        client_tx_meta_udp_port = cli_udp_p;
     } else {
-        udp_socket = nullptr;
-        udp_addr = nullptr;
+        client_udp_socket = nullptr;
+        client_tx_meta_udp_addr = nullptr;
+    }
+    if (srv_unix_p != 0) {
+        server_unix_socket = new QLocalSocket(this);
+        server_unix_socket->waitForConnected(-1);
+        server_rx_state_udp_port = srv_unix_p;
+        proc_enabled = process_state::disable;
+    } else {
+        server_unix_socket = nullptr;
+        proc_enabled = process_state::enable;
     }
     if (!in_stream.isOpened()) {
         in_stream.open(device_id);
@@ -58,21 +67,32 @@ CVIONode::CVIONode(
 }
 
 CVIONode::CVIONode(
-        QString video_name, bool draw_overlay, QString ip_addr, int ip_p,
-        QString over_name, bool show_overlay, bool store_output,
+        QString video_name, bool draw_overlay, QString cli_udp_addr,
+        int cli_udp_p, int srv_unix_p, QString over_name, bool show_overlay, bool store_output,
         int frame_width, int frame_height
 ) : QObject(NULL), video_name(video_name), show_overlay(show_overlay), store_output(store_output),
     frame_width(frame_width), frame_height(frame_height) {
     frame_number = 1;
     if (draw_overlay)
         overlay_name = over_name;
-    if (!ip_addr.isEmpty()) {
-        udp_socket = new QUdpSocket(this);
-        udp_addr = new QHostAddress(ip_addr);
-        udp_port = ip_p;
+    if (!cli_udp_addr.isEmpty()) {
+        client_udp_socket = new QUdpSocket(this);
+        client_tx_meta_udp_addr = new QHostAddress(cli_udp_addr);
+        client_tx_meta_udp_port = cli_udp_p;
     } else {
-        udp_socket = nullptr;
-        udp_addr = nullptr;
+        client_udp_socket = nullptr;
+        client_tx_meta_udp_addr = nullptr;
+    }
+    if (srv_unix_p != 0) {
+        server_unix_socket = new QLocalSocket(this);
+        connect(server_unix_socket, SIGNAL(readyRead()), this, SLOT(getState()));
+        connect(server_unix_socket, SIGNAL(readyRead()), this, SLOT(getState()));
+        server_unix_socket->waitForConnected(-1);
+        server_rx_state_udp_port = srv_unix_p;
+        proc_enabled = process_state::disable;
+    } else {
+        server_unix_socket = nullptr;
+        proc_enabled = process_state::enable;
     }
     if (!in_stream.isOpened()) {
         in_stream.open(video_name.toStdString());
@@ -87,30 +107,43 @@ void CVIONode::process() {
         cv::namedWindow(overlay_name.toStdString(), CV_WINDOW_AUTOSIZE);
     clock_t t1 = clock();
     while(in_stream.read(frame)) {
-        video_timings[frame_number] = {clock(), nodes_number};
-        process_data = CVProcessData(video_name, frame, frame_number, get_fps(), draw_overlay);
-        emit nextNode(process_data, this);
-        usleep(get_delay((unsigned int)((double) (clock() - t1) / CLOCKS_PER_SEC) * 1000000));
-        cv::Mat overlay = video_data[video_name].overlay;
-        if (!overlay.empty()) {
-            if (!out_stream.isOpened())
-                out_stream.open(overlay_name.toStdString(), 1482049860, fps, overlay.size());
+        switch (proc_enabled) {
+        case process_state::enable: {
+            video_timings[frame_number] = {clock(), nodes_number};
+            process_data = CVProcessData(video_name, frame, frame_number, get_fps(), draw_overlay);
+            emit nextNode(process_data, this);
+            usleep(get_delay((unsigned int)((double) (clock() - t1) / CLOCKS_PER_SEC) * 1000000));
+            cv::Mat overlay = video_data[video_name].overlay;
+            if (!overlay.empty()) {
+                if (!out_stream.isOpened())
+                    out_stream.open(overlay_name.toStdString(), 1482049860, fps, overlay.size());
 
-            out_stream << overlay;
-            if (show_overlay)
-                cv::imshow(overlay_name.toStdString(), overlay);
+                out_stream << overlay;
+                if (show_overlay)
+                    cv::imshow(overlay_name.toStdString(), overlay);
 
-            frame_number++;
+                frame_number++;
+            }
+            if (!process_data.data_serialized.isEmpty())
+                client_udp_socket->writeDatagram(process_data.data_serialized, *client_tx_meta_udp_addr, client_tx_meta_udp_port);
+
+            t1 = clock();
+
+            if (frame_number % 300 == 0)
+            {
+                std::cout << "===============================================\n";
+                emit print_stat();
+            }
+            break;
         }
-        if (!process_data.data_serialized.isEmpty())
-            udp_socket->writeDatagram(process_data.data_serialized, *udp_addr, udp_port);
-
-        t1 = clock();
-
-        if (frame_number % 300 == 0)
-        {
-            std::cout << "===============================================\n";
-            emit print_stat();
+        default:
+            usleep((int)(1000000. / get_fps()));
+            t1 = clock();
+            if (proc_enabled == process_state::conn_closed) {
+                server_unix_socket->waitForConnected(-1);
+                proc_enabled = process_state::disable;
+            }
+            break;
         }
     }
 
@@ -121,6 +154,18 @@ void CVIONode::process() {
     if (store_output)
         storeLog();
     emit EOS();
+}
+
+void CVIONode::getState() {
+    char com = 0;
+    server_unix_socket->read(&com, 1);
+    if (com == 'e') {
+        proc_enabled = process_state::enable;
+    } else if (com == 's') {
+        proc_enabled = process_state::disable;
+    } else if (com == 'c') {
+        proc_enabled = process_state::conn_closed;
+    }
 }
 
 void CVIONode::storeLog() {

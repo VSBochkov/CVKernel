@@ -20,8 +20,9 @@
         }]
       }]
   }],
-  "ip_address": "127.0.0.1",
-  "ip_port": 7777,
+  "client_tx_meta_udp_address": "127.0.0.1",
+  "client_tx_meta_udp_port": 7777,
+  "server_rx_state_unix_port": 7776,
   "show_overlay": false,
   "store_output": true,
   "frame_width": 320,

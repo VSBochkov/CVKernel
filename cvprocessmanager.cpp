@@ -129,8 +129,9 @@ void CVProcessManager::addNewStream(CVForestParser &forest) {
     CVIONode* io(forest.video_in.isEmpty() ? new CVIONode(
                                                  forest.device_in,
                                                  !forest.video_out.isEmpty(),
-                                                 forest.ip_addr,
-                                                 forest.ip_port,
+                                                 forest.client_tx_meta_udp_addr,
+                                                 forest.client_tx_meta_udp_port,
+                                                 forest.server_rx_state_unix_port,
                                                  forest.show_overlay,
                                                  forest.store_output,
                                                  forest.frame_width,
@@ -139,8 +140,9 @@ void CVProcessManager::addNewStream(CVForestParser &forest) {
                                              new CVIONode(
                                                  forest.video_in,
                                                  !forest.video_out.isEmpty(),
-                                                 forest.ip_addr,
-                                                 forest.ip_port,
+                                                 forest.client_tx_meta_udp_addr,
+                                                 forest.client_tx_meta_udp_port,
+                                                 forest.server_rx_state_unix_port,
                                                  forest.video_out,
                                                  forest.show_overlay,
                                                  forest.store_output,
@@ -184,8 +186,10 @@ CVForestParser& CVForestParser::parseJSON(QString json_fname) {
     if (!json_obj["file_output"].isUndefined())
         video_out = QString(json_obj["file_output"].toString());
 
-    ip_addr = json_obj["ip_address"].isUndefined() ? "" : QString(json_obj["ip_address"].toString());
-    ip_port = json_obj["ip_port"].isUndefined() ? 0 : json_obj["ip_port"].toInt();
+    client_tx_meta_udp_addr = json_obj["client_tx_meta_udp_address"].isUndefined() ? "" : QString(json_obj["client_tx_meta_udp_address"].toString());
+    client_tx_meta_udp_port = json_obj["client_tx_meta_udp_port"].isUndefined() ? 0 : json_obj["client_tx_meta_udp_port"].toInt();
+    server_rx_state_unix_port = json_obj["server_rx_state_unix_port"].isUndefined() ? 0 : json_obj["server_rx_state_unix_port"].toInt();
+
     show_overlay = json_obj["show_overlay"].isUndefined() ? false : json_obj["show_overlay"].toBool();
     store_output = json_obj["store_output"].isUndefined() ? false : json_obj["store_output"].toBool();
     frame_width = json_obj["frame_width"].isUndefined() ? 320 : json_obj["frame_width"].toInt();
