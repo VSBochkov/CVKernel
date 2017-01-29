@@ -9,11 +9,15 @@
 #include <unistd.h>
 #include <time.h>
 
+#include <QTcpSocket>
+
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonValue>
+
+#include <QDebug>
 
 #include "videoproc/firebbox.h"
 
@@ -34,7 +38,7 @@ CVProcessData::CVProcessData(QString video_name, cv::Mat frame, int fnum, double
 
 CVIONode::CVIONode(
         int device_id, bool draw_overlay, QString cli_udp_addr,
-        int cli_udp_p, QString srv_unix_dst, bool show_overlay, bool store_output,
+        int cli_udp_p, int srv_tcp_p, bool show_overlay, bool store_output,
         int frame_width, int frame_height
 ) : QObject(NULL), show_overlay(show_overlay), store_output(store_output),
     frame_width(frame_width), frame_height(frame_height) {
@@ -49,14 +53,10 @@ CVIONode::CVIONode(
         client_udp_socket = nullptr;
         client_tx_meta_udp_addr = nullptr;
     }
-    if (!srv_unix_dst.isEmpty()) {
-        server_unix_socket = new QLocalSocket(this);
-        server_unix_socket->setServerName(srv_unix_dst);
-        connect(server_unix_socket, SIGNAL(readyRead()), this, SLOT(getState()));
-        server_unix_socket->waitForConnected(-1);
-        proc_enabled = process_state::disable;
+    if (srv_tcp_p != 0) {
+        setupTcpConnection(srv_tcp_p);
     } else {
-        server_unix_socket = nullptr;
+        cvstate_tcp_server = nullptr;
         proc_enabled = process_state::enable;
     }
     if (!in_stream.isOpened()) {
@@ -69,7 +69,7 @@ CVIONode::CVIONode(
 
 CVIONode::CVIONode(
         QString video_name, bool draw_overlay, QString cli_udp_addr,
-        int cli_udp_p, QString srv_unix_dst, QString over_name, bool show_overlay, bool store_output,
+        int cli_udp_p, int srv_tcp_p, QString over_name, bool show_overlay, bool store_output,
         int frame_width, int frame_height
 ) : QObject(NULL), video_name(video_name), show_overlay(show_overlay), store_output(store_output),
     frame_width(frame_width), frame_height(frame_height) {
@@ -84,20 +84,27 @@ CVIONode::CVIONode(
         client_udp_socket = nullptr;
         client_tx_meta_udp_addr = nullptr;
     }
-    if (!srv_unix_dst.isEmpty()) {
-        server_unix_socket = new QLocalSocket(this);
-        server_unix_socket->setServerName(srv_unix_dst);
-        connect(server_unix_socket, SIGNAL(readyRead()), this, SLOT(getState()));
-        server_unix_socket->waitForConnected(-1);
-        proc_enabled = process_state::disable;
+    if (srv_tcp_p != 0) {
+        setupTcpConnection(srv_tcp_p);
     } else {
-        server_unix_socket = nullptr;
+        cvstate_tcp_server = nullptr;
         proc_enabled = process_state::enable;
     }
     if (!in_stream.isOpened()) {
         in_stream.open(video_name.toStdString());
         fps = in_stream.get(CV_CAP_PROP_FPS) > 1.0 ? in_stream.get(CV_CAP_PROP_FPS) : 30.;
     }
+}
+
+void CVIONode::setupTcpConnection(int port) {
+    cvstate_tcp_server = new QTcpServer(this);
+    cvstate_tcp_server->listen(QHostAddress::Any, port);
+    cvstate_tcp_server->waitForNewConnection(-1);
+    qDebug() << "Driver is connected.";
+    QTcpSocket* driver = cvstate_tcp_server->nextPendingConnection();
+    connect(driver, SIGNAL(readyRead()), this, SLOT(getState()));
+    connect(driver, SIGNAL(disconnected()), this, SLOT(driverDisconnected()));
+    proc_enabled = process_state::disable;
 }
 
 void CVIONode::process() {
@@ -131,7 +138,7 @@ void CVIONode::process() {
 
             if (frame_number % 300 == 0)
             {
-                std::cout << "===============================================\n";
+                qInfo() << "===============================================";
                 emit print_stat();
             }
             break;
@@ -140,7 +147,7 @@ void CVIONode::process() {
             usleep((int)(1000000. / get_fps()));
             t1 = clock();
             if (proc_enabled == process_state::conn_closed) {
-                server_unix_socket->waitForConnected(-1);
+                cvstate_tcp_server->waitForNewConnection(-1);
                 proc_enabled = process_state::disable;
             }
             break;
@@ -150,21 +157,28 @@ void CVIONode::process() {
     if (show_overlay)
         cv::destroyWindow(overlay_name.toStdString());
     while (in_stream.isOpened()) in_stream.release();
-    std::cout << "===============================================\nEnd of Stream\n";
+    qInfo() << "===============================================\nEnd of Stream";
     if (store_output)
         storeLog();
     emit EOS();
 }
 
+void CVIONode::driverDisconnected() {
+    qDebug() << "Driver is disconnected.";
+    proc_enabled = process_state::conn_closed;
+    cvstate_tcp_server->waitForNewConnection(-1);
+}
+
 void CVIONode::getState() {
+    QTcpSocket* driver = (QTcpSocket*)sender();
     char com = 0;
-    server_unix_socket->read(&com, 1);
+    driver->read(&com, 1);
     if (com == 'e') {
         proc_enabled = process_state::enable;
+        qInfo() << "Processing enabled";
     } else if (com == 's') {
         proc_enabled = process_state::disable;
-    } else if (com == 'c') {
-        proc_enabled = process_state::conn_closed;
+        qInfo() << "Processing disabled";
     }
 }
 
@@ -205,7 +219,7 @@ void CVIONode::storeLog() {
     QTextStream stream(&json_file);
     stream << jdoc.toJson();
     json_file.close();
-    std::cout << "Log has saved." << std::endl;
+    qInfo() << "Log has saved.";
 }
 
 

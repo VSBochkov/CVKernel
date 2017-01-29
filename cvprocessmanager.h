@@ -68,7 +68,7 @@ namespace CVKernel {
         QString video_out;
         QString client_tx_meta_udp_addr;
         int     client_tx_meta_udp_port;
-        QString server_rx_state_unix_dst;
+        int     server_rx_state_tcp_port;
         bool    show_overlay;
         bool    store_output;
         double  proc_frame_scale;

@@ -10,11 +10,11 @@ int main(int argc, char *argv[])
     std::string json_file;
     if (argc > 1) {
         if (strcmp(argv[1], "off") == 0)
-            json_file = "../fire_overlay_off";
+            json_file = "../../FireRobotDriver/fire_overlay_off";
         else
-            json_file = "../fire_overlay_on";
+            json_file = "../../FireRobotDriver/fire_overlay_on";
     } else
-        json_file = "../fire_overlay_on";
+        json_file = "../../FireRobotDriver/fire_overlay_on";
 
     if (argc > 2) {
         if (strcmp(argv[2], "rpi") == 0)

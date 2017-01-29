@@ -131,7 +131,7 @@ void CVProcessManager::addNewStream(CVForestParser &forest) {
                                                  !forest.video_out.isEmpty(),
                                                  forest.client_tx_meta_udp_addr,
                                                  forest.client_tx_meta_udp_port,
-                                                 forest.server_rx_state_unix_dst,
+                                                 forest.server_rx_state_tcp_port,
                                                  forest.show_overlay,
                                                  forest.store_output,
                                                  forest.frame_width,
@@ -142,7 +142,7 @@ void CVProcessManager::addNewStream(CVForestParser &forest) {
                                                  !forest.video_out.isEmpty(),
                                                  forest.client_tx_meta_udp_addr,
                                                  forest.client_tx_meta_udp_port,
-                                                 forest.server_rx_state_unix_dst,
+                                                 forest.server_rx_state_tcp_port,
                                                  forest.video_out,
                                                  forest.show_overlay,
                                                  forest.store_output,
@@ -188,7 +188,7 @@ CVForestParser& CVForestParser::parseJSON(QString json_fname) {
 
     client_tx_meta_udp_addr = json_obj["meta_udp_address"].isUndefined() ? "" : QString(json_obj["meta_udp_address"].toString());
     client_tx_meta_udp_port = json_obj["meta_udp_port"].isUndefined() ? 0 : json_obj["meta_udp_port"].toInt();
-    server_rx_state_unix_dst = json_obj["state_unix_dst"].isUndefined() ? 0 : QString(json_obj["state_unix_dst"].toString());
+    server_rx_state_tcp_port = json_obj["state_tcp_port"].isUndefined() ? 0 : json_obj["state_tcp_port"].toInt();
 
     show_overlay = json_obj["show_overlay"].isUndefined() ? false : json_obj["show_overlay"].toBool();
     store_output = json_obj["store_output"].isUndefined() ? false : json_obj["store_output"].toBool();

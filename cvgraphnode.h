@@ -5,7 +5,7 @@
 #include <QObject>
 #include <QSharedPointer>
 #include <QUdpSocket>
-#include <QLocalSocket>
+#include <QTcpServer>
 #include <QMutex>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -43,8 +43,8 @@ namespace CVKernel {
     class CVIONode : public QObject {
         Q_OBJECT
     public:
-        explicit CVIONode(QString video_name = "", bool draw_overlay = false, QString cli_udp_addr = "", int cli_udp_p = 0, QString srv_unix_dst = "", QString overlay_name = "", bool show_overlay = false, bool store_output = false, int frame_width = 320, int frame_height = 240);
-        explicit CVIONode(int device_id = 0, bool draw_overlay = false, QString cli_udp_addr = "", int cli_udp_p = 0, QString srv_unix_dst = "", bool show_overlay = false, bool store_output = false, int frame_width = 320, int frame_height = 240);
+        explicit CVIONode(QString video_name = "", bool draw_overlay = false, QString cli_udp_addr = "", int cli_udp_p = 0, int srv_tcp_p = 0, QString overlay_name = "", bool show_overlay = false, bool store_output = false, int frame_width = 320, int frame_height = 240);
+        explicit CVIONode(int device_id = 0, bool draw_overlay = false, QString cli_udp_addr = "", int cli_udp_p = 0, int srv_tcp_p = 0, bool show_overlay = false, bool store_output = false, int frame_width = 320, int frame_height = 240);
         virtual ~CVIONode() {
             if (client_tx_meta_udp_addr == nullptr)
                 return;
@@ -60,6 +60,8 @@ namespace CVKernel {
             return (useconds_t) (((int)delay - (int)micros_spent) > 0 ? delay - micros_spent : 0);
         }
 
+        void setupTcpConnection(int port);
+
     signals:
         void nextNode(CVProcessData process_data, CVIONode *stream_node);
         void EOS();
@@ -67,6 +69,7 @@ namespace CVKernel {
 
     public slots:
         void process();
+        void driverDisconnected();
         void getState();
 
     private:
@@ -82,7 +85,7 @@ namespace CVKernel {
         quint16 client_tx_meta_udp_port;
         CVProcessData process_data;
         QUdpSocket* client_udp_socket;
-        QLocalSocket* server_unix_socket;
+        QTcpServer* cvstate_tcp_server;
         bool show_overlay;
         double proc_frame_scale;
         enum class process_state {disable = 0, enable, conn_closed} proc_enabled;
