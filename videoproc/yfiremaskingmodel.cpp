@@ -9,12 +9,9 @@ DataYFireMM::DataYFireMM(int rows, int cols) :
 
 DataYFireMM::~DataYFireMM() {}
 
-YFireMaskingModel::YFireMaskingModel(bool ip_del, bool over_draw) :
-    CVProcessingNode(ip_del, over_draw) {}
-
-QSharedPointer<CVKernel::CVNodeData> YFireMaskingModel::compute(CVKernel::CVProcessData &process_data) {
-    cv::Mat frame = CVKernel::video_data[process_data.video_name].frame;
-    cv::Mat overlay = CVKernel::video_data[process_data.video_name].overlay;
+QSharedPointer<CVKernel::CVNodeData> YFireMaskingModel::compute(QSharedPointer<CVKernel::CVProcessData> process_data) {
+    cv::Mat frame = CVKernel::video_data[process_data->video_name].frame;
+    cv::Mat overlay = CVKernel::video_data[process_data->video_name].overlay;
     cv::Mat ycrcb;
     cv::cvtColor(frame, ycrcb, cv::COLOR_BGR2YCrCb);
     QSharedPointer<DataYFireMM> result(new DataYFireMM(overlay.rows, overlay.cols));

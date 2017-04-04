@@ -4,30 +4,25 @@
 #include <QObject>
 #include <QMap>
 #include <QSet>
+#include <QList>
+
+#include <QTcpSocket>
+#include <QString>
 
 namespace CVKernel {
-    class CVProcessingNode;
-    class CVLoggerNode;
     class CVIONode;
-
-    enum cv_node {
-        nothing = -1,
-        r_firemm,
-        y_firemm,
-        fire_valid,
-        fire_bbox,
-        fire_weights,
-        flame_src_bbox
-    };
+    class CVNodeParams;
+    class CVProcessingNode;
+    class CVNetworkManager;
 
     struct CVProcessTree {
         struct Node {
             Node* parent;
-            cv_node value;
+            QString value;
             bool draw_overlay;
             bool ip_deliver;
             QList<Node*> children;
-            Node(Node* par = NULL, cv_node val = nothing, bool draw = false, bool ip_deliver = false):
+            Node(Node* par = NULL, QString val = "", bool draw = false, bool ip_deliver = false):
                 parent(par), value(val), draw_overlay(draw), ip_deliver(ip_deliver) {
                 children = QList<Node*>();
                 if (parent != NULL)
@@ -44,56 +39,66 @@ namespace CVKernel {
         ~CVProcessTree() { delete_tree(root); }
     };
 
-    class CVForestParser {
+    class CVProcessForest {
     public:
-        CVForestParser& parseJSON(QString json_fname);
-        QList<CVProcessTree*> get_forest() { return proc_forest; }
-        QString get_video_in() { return video_in; }
-        QString get_video_out() { return video_out; }
+        CVProcessForest(QJsonObject& json_obj);
+        ~CVProcessForest() {
+            for (CVKernel::CVProcessTree* tree : proc_forest) delete tree;
+            proc_forest.clear();
+        }
+
     private:
         void recursive_parse(QJsonObject json_node, CVProcessTree::Node* node);
-        cv_node get_node(QString node) {
-            if (node == "r_firemm")             return r_firemm;
-            else if (node == "y_firemm")        return y_firemm;
-            else if (node == "fire_valid")      return fire_valid;
-            else if (node == "fire_bbox")       return fire_bbox;
-            else if (node == "fire_weights")    return fire_weights;
-            else if (node == "flame_src_bbox")  return flame_src_bbox;
-            else                                return nothing;
-        }
+        CVProcessTree::Node* create_node(QJsonObject& json_node, CVProcessTree::Node* parent = NULL);
+
     public:
         QList<CVProcessTree*> proc_forest;
+        QMap<QString, QSharedPointer<CVNodeParams>> params_map;
         int     device_in;
         QString video_in;
         QString video_out;
-        QString client_tx_meta_udp_addr;
-        int     client_tx_meta_udp_port;
-        int     server_rx_state_tcp_port;
+        QString meta_udp_addr;
+        int     meta_udp_port;
         bool    show_overlay;
         bool    store_output;
-        double  proc_frame_scale;
         int     frame_width;
         int     frame_height;
+        double  fps;
     };
 
-    class CVProcessManager : QObject {
+    class CVProcessManager : public QObject {
         Q_OBJECT
     public:
-        explicit CVProcessManager(QObject *parent = 0);
+        explicit CVProcessManager(QObject* parent = 0, CVNetworkManager* net_manager = 0);
         virtual ~CVProcessManager();
-        void addNewStream(CVForestParser &forest);
+        CVIONode* add_new_stream(CVProcessForest& forest);
+        QMap<QString, double> get_average_timings();
 
-        void purposeProcesses(
+        void purpose_processes(
             QList<CVProcessTree*> processForest,
             CVIONode* video_io
         );
 
+    signals:
+        void io_node_created(QTcpSocket*, CVIONode*);
+        void io_node_started(CVIONode*);
+        void io_node_stopped(CVIONode*);
+        void io_node_closed(CVIONode*);
+
     public slots:
+        void add_new_stream(QTcpSocket* client, QSharedPointer<CVProcessForest> proc_forest);
+        void start_stream(CVIONode* io_node);
+        void on_stream_started();
+        void stop_stream(CVIONode* io_node);
+        void on_stream_stopped();
+        void close_stream(CVIONode* io_node);
         void close_threads();
+        void on_stream_closed();
+        void on_udp_closed(CVIONode* io_node);
 
     private:
-        void createNewThread(CVProcessingNode* node);
-        void addProcessingNode(CVProcessTree::Node* node);
+        void parse_cv_kernel_settings_json(QString json_fname);
+        void create_new_thread(CVProcessingNode* node);
         void purpose(CVProcessTree::Node* parent, CVProcessTree::Node* curr);
         void purpose(CVIONode* video_io, CVProcessTree::Node* root);
         void purpose_tree(CVIONode* video_io, CVProcessTree::Node* node);
@@ -110,7 +115,11 @@ namespace CVKernel {
             }
         };
         QList<connection> connections;
-        QMap<cv_node, QList<CVProcessingNode*>> cv_processor;
+        QList<CVIONode*> io_nodes;
+        CVNetworkManager* network_manager;
+        QMap<QString, QList<CVProcessingNode*>> cv_processor;
+        
+    public:
         QSet<CVProcessingNode*> processing_nodes;
         double max_fps;
     };

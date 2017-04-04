@@ -2,11 +2,13 @@
 #define CVGRAPHNODE_H
 
 #include <QMap>
-#include <QObject>
+#include <QString>
 #include <QSharedPointer>
 #include <QUdpSocket>
 #include <QTcpServer>
 #include <QMutex>
+#include <QWaitCondition>
+#include <QJsonObject>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
@@ -23,106 +25,116 @@ namespace CVKernel {
     };
     extern QMap<QString, VideoData> video_data;
 
-    class CVNodeData {
-    public:
+    struct CVNodeData {
         CVNodeData() {}
         virtual ~CVNodeData() {}
-        virtual QString get_log() { return ""; }
+        virtual QJsonObject pack_to_json();
+    };
+
+    struct CVNodeParams {
+        CVNodeParams(QJsonObject&);
+        virtual ~CVNodeParams() {}
+        bool draw_overlay;
+    };
+
+    struct CVNodeHistory {
+        CVNodeHistory() {}
+        virtual void clear_history() {}
+        virtual ~CVNodeHistory() {}
     };
 
     struct CVProcessData {
+        QString video_name;
         int frame_num;
         double fps;
-        QString video_name;
-        QByteArray data_serialized;
         QMap<QString, QSharedPointer<CVNodeData>> data;
+        QMap<QString, QSharedPointer<CVNodeParams>> params;
+        QMap<QString, QSharedPointer<CVNodeHistory>> history;
+
         CVProcessData() {}
-        CVProcessData(QString video_name, cv::Mat frame, int fnum, double fps, bool draw_overlay);
+        CVProcessData(QString video_name, cv::Mat frame, int fnum, double fps, bool draw_overlay,
+                      QMap<QString, QSharedPointer<CVNodeParams>>& params,
+                      QMap<QString, QSharedPointer<CVNodeHistory>>& history);
+        QJsonObject pack_to_json();
     };
 
     class CVIONode : public QObject {
         Q_OBJECT
     public:
-        explicit CVIONode(QString video_name = "", bool draw_overlay = false, QString cli_udp_addr = "", int cli_udp_p = 0, int srv_tcp_p = 0, QString overlay_name = "", bool show_overlay = false, bool store_output = false, int frame_width = 320, int frame_height = 240);
-        explicit CVIONode(int device_id = 0, bool draw_overlay = false, QString cli_udp_addr = "", int cli_udp_p = 0, int srv_tcp_p = 0, bool show_overlay = false, bool store_output = false, int frame_width = 320, int frame_height = 240);
-        virtual ~CVIONode() {
-            if (client_tx_meta_udp_addr == nullptr)
-                return;
-            delete client_tx_meta_udp_addr;
-            client_udp_socket->close();
-            delete client_udp_socket;
-        }
+        explicit CVIONode(QString input_path, QString overlay_path, int frame_width, int frame_height, double fps,
+                          QMap<QString, QSharedPointer<CVNodeParams>>& pars);
+        explicit CVIONode(int device_id, QString overlay_path, int frame_width, int frame_height, double fps,
+                          QMap<QString, QSharedPointer<CVNodeParams>>& pars);
+        virtual ~CVIONode();
 
         double get_fps() { return fps; }
+
         useconds_t get_delay(unsigned int micros_spent) {
             unsigned int delay = (unsigned int)(1000000. / fps);
             delay += delay * fps >= 1000000. ? 0 : 1;
             return (useconds_t) (((int)delay - (int)micros_spent) > 0 ? delay - micros_spent : 0);
         }
 
-        void setupTcpConnection(int port);
+        QString get_overlay_path() { return overlay_path; }
+
+    public:
+        void start();
+        void stop();
+        void close();
+        void udp_closed();
 
     signals:
-        void nextNode(CVProcessData process_data, CVIONode *stream_node);
-        void EOS();
-        void print_stat();
+        void nextNode(QSharedPointer<CVProcessData> process_data, CVIONode *stream_node);
+
+        void send_metadata(QByteArray);
+
+        void node_started();
+        void node_stopped();
+        void node_closed();
+        void close_udp();
 
     public slots:
         void process();
-        void driverDisconnected();
-        void getState();
-
-    private:
-        void storeLog();
 
     private:
         cv::VideoCapture in_stream;
-        QString video_name;
+        QString video_path;
         cv::VideoWriter out_stream;
-        QString overlay_name;
-        double fps;
-        QHostAddress* client_tx_meta_udp_addr;
-        quint16 client_tx_meta_udp_port;
-        CVProcessData process_data;
-        QUdpSocket* client_udp_socket;
-        QTcpServer* cvstate_tcp_server;
-        bool show_overlay;
-        double proc_frame_scale;
-        enum class process_state {disable = 0, enable, conn_closed} proc_enabled;
-
-    public:
-        QMap<int, std::pair<clock_t,int>> video_timings;
-        QMap<std::pair<int, QString>, QSharedPointer<CVNodeData>> stored_output;
-        bool store_output;
-        int nodes_number;
+        QString overlay_path;
         int frame_number;
         int frame_width;
         int frame_height;
+        QMap<QString, QSharedPointer<CVNodeParams>> params;
+        QMutex guard_lock;
+        QWaitCondition run_cv;
+        double fps;
+        double proc_frame_scale;
+        enum class process_state {closed = 0, run, stopped} state;
+
+    public:
+        QMap<int, std::pair<clock_t,int>> video_timings;
+        int nodes_number;
     };
 
     class CVProcessingNode : public QObject {
         Q_OBJECT
     public:
-        explicit CVProcessingNode(bool ip_deliever_en = false, bool draw_overlay = false);
+        explicit CVProcessingNode();
         virtual ~CVProcessingNode() = default;
 
-        virtual QSharedPointer<CVNodeData> compute(CVProcessData &process_data) = 0;
+        virtual QSharedPointer<CVNodeData> compute(QSharedPointer<CVProcessData> process_data) = 0;
 
-        double averageTime() { return average_time; }
-        QString make_log(QSharedPointer<CVNodeData> data) { return data->get_log(); }
+        double averageTime();
+
     signals:
-        void nextNode(CVProcessData process_data, CVIONode *stream_node);
-        void pushLog(QString video_name, QString log);
+        void nextNode(QSharedPointer<CVProcessData> process_data, CVIONode *stream_node);
         void nextStat();
 
     public slots:
-        virtual void process(CVProcessData process_data, CVIONode *stream_node);
-        virtual void printStat();
+        virtual void process(QSharedPointer<CVProcessData> process_data, CVIONode *stream_node);
 
     public:
-        bool draw_overlay;
-        bool ip_deliever;
-        QSharedPointer<QMutex> ip_mutex;
+        QSharedPointer<QMutex> aver_time_mutex;
 
     private:
         void calcAverageTime();
@@ -131,7 +143,7 @@ namespace CVKernel {
         double average_time;
         double average_delay = 0.0;
         int frame_processed = 0;
-        int counter;
+        int frame_counter;
         bool fill_buf;
     };
 }

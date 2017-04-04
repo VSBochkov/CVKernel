@@ -1,270 +1,234 @@
 #include "cvgraphnode.h"
+#include "cvjsoncontroller.h"
+#include "cvfactorycontroller.h"
 
-#include <QFile>
-#include <QTextStream>
 #include <QTimer>
 #include <opencv2/opencv.hpp>
-#include <iostream>
 #include <utility>
 #include <unistd.h>
 #include <time.h>
 
-#include <QTcpSocket>
-
-#include <QFile>
-#include <QJsonDocument>
-#include <QJsonArray>
-#include <QJsonObject>
-#include <QJsonValue>
-
-#include <QDebug>
-
 #include "videoproc/firebbox.h"
 
-using namespace CVKernel;
-QMap<QString, VideoData> CVKernel::video_data;
+QMap<QString, CVKernel::VideoData> CVKernel::video_data;
 
-CVProcessData::CVProcessData(QString video_name, cv::Mat frame, int fnum, double fps, bool draw_overlay):
-    video_name(video_name) {
+CVKernel::CVProcessData::CVProcessData(QString video_name, cv::Mat frame, int fnum, double fps, bool draw_overlay,
+                                       QMap<QString, QSharedPointer<CVNodeParams>>& pars,
+                                       QMap<QString, QSharedPointer<CVNodeHistory>>& hist)
+    : video_name(video_name), frame_num(fnum), fps(fps)
+{
+    params = pars;
+    history = hist;
     video_data[video_name].frame = frame;
-    if (draw_overlay)
-    {
+    if (draw_overlay) {
         frame.copyTo(video_data[video_name].overlay);
     }
-    frame_num = fnum;
-    fps = fps;
-    data_serialized.clear();
 }
 
-CVIONode::CVIONode(
-        int device_id, bool draw_overlay, QString cli_udp_addr,
-        int cli_udp_p, int srv_tcp_p, bool show_overlay, bool store_output,
-        int frame_width, int frame_height
-) : QObject(NULL), show_overlay(show_overlay), store_output(store_output),
-    frame_width(frame_width), frame_height(frame_height) {
-    frame_number = 1;
-    if (draw_overlay)
-        overlay_name = QString("device_") + QString::number(device_id);
-    if (!cli_udp_addr.isEmpty()) {
-        client_udp_socket = new QUdpSocket(this);
-        client_tx_meta_udp_addr = new QHostAddress(cli_udp_addr);
-        client_tx_meta_udp_port = cli_udp_p;
-    } else {
-        client_udp_socket = nullptr;
-        client_tx_meta_udp_addr = nullptr;
+CVKernel::CVIONode::CVIONode(int device_id, QString over_path, int width, int height, double framespersecond,
+                             QMap<QString, QSharedPointer<CVNodeParams>>& pars)
+    : QObject(NULL),
+      video_path(QString("video") + QString::number(device_id)),
+      overlay_path(over_path),
+      frame_number(1),
+      frame_width(width),
+      frame_height(height),
+      params(pars)
+{
+    in_stream.open(device_id);
+
+    if (in_stream.get(CV_CAP_PROP_FPS) > 1.0)
+        fps = in_stream.get(CV_CAP_PROP_FPS);
+    else
+        fps = framespersecond;
+
+    in_stream.set(CV_CAP_PROP_FRAME_WIDTH, frame_width);
+    in_stream.set(CV_CAP_PROP_FRAME_HEIGHT, frame_height);
+    in_stream.set(CV_CAP_PROP_FPS, fps);
+
+    if (not overlay_path.isEmpty())
+        out_stream.open(overlay_path.toStdString(), 1482049860, fps, cv::Size(frame_width, frame_height));
+
+    state = process_state::closed;
+}
+
+CVKernel::CVIONode::CVIONode(QString input_path, QString over_path, int width, int height, double framespersecond,
+                             QMap<QString, QSharedPointer<CVNodeParams>>& pars)
+    : QObject(NULL),
+      video_path(input_path),
+      overlay_path(over_path),
+      frame_number(1),
+      frame_width(width),
+      frame_height(height),
+      params(pars)
+{
+    in_stream.open(video_path.toStdString());
+
+    if (in_stream.get(CV_CAP_PROP_FPS) > 1.0)
+        fps = in_stream.get(CV_CAP_PROP_FPS);
+    else
+        fps = framespersecond;
+
+    in_stream.set(CV_CAP_PROP_FRAME_WIDTH, frame_width);
+    in_stream.set(CV_CAP_PROP_FRAME_HEIGHT, frame_height);
+    in_stream.set(CV_CAP_PROP_FPS, fps);
+
+    if (not overlay_path.isEmpty())
+        out_stream.open(overlay_path.toStdString(), 1482049860, fps, cv::Size(frame_width, frame_height));
+
+    state = process_state::closed;
+}
+
+CVKernel::CVIONode::~CVIONode()
+{
+    if (in_stream.isOpened()) {
+        in_stream.release();
     }
-    if (srv_tcp_p != 0) {
-        setupTcpConnection(srv_tcp_p);
-    } else {
-        cvstate_tcp_server = nullptr;
-        proc_enabled = process_state::enable;
-    }
-    if (!in_stream.isOpened()) {
-        in_stream.open(device_id);
-        fps = in_stream.get(CV_CAP_PROP_FPS) > 1.0 ? in_stream.get(CV_CAP_PROP_FPS) : 30.;
-        in_stream.set(CV_CAP_PROP_FRAME_WIDTH, frame_width);
-        in_stream.set(CV_CAP_PROP_FRAME_HEIGHT, frame_height);
+    if (out_stream.isOpened()) {
+        out_stream.release();
     }
 }
 
-CVIONode::CVIONode(
-        QString video_name, bool draw_overlay, QString cli_udp_addr,
-        int cli_udp_p, int srv_tcp_p, QString over_name, bool show_overlay, bool store_output,
-        int frame_width, int frame_height
-) : QObject(NULL), video_name(video_name), show_overlay(show_overlay), store_output(store_output),
-    frame_width(frame_width), frame_height(frame_height) {
-    frame_number = 1;
-    if (draw_overlay)
-        overlay_name = over_name;
-    if (!cli_udp_addr.isEmpty()) {
-        client_udp_socket = new QUdpSocket(this);
-        client_tx_meta_udp_addr = new QHostAddress(cli_udp_addr);
-        client_tx_meta_udp_port = cli_udp_p;
-    } else {
-        client_udp_socket = nullptr;
-        client_tx_meta_udp_addr = nullptr;
-    }
-    if (srv_tcp_p != 0) {
-        setupTcpConnection(srv_tcp_p);
-    } else {
-        cvstate_tcp_server = nullptr;
-        proc_enabled = process_state::enable;
-    }
-    if (!in_stream.isOpened()) {
-        in_stream.open(video_name.toStdString());
-        fps = in_stream.get(CV_CAP_PROP_FPS) > 1.0 ? in_stream.get(CV_CAP_PROP_FPS) : 30.;
-    }
+void CVKernel::CVIONode::start()
+{
+    guard_lock.lock();
+        if(state != process_state::run) {
+            state = process_state::run;
+            run_cv.wakeOne();
+        }
+    guard_lock.unlock();
 }
 
-void CVIONode::setupTcpConnection(int port) {
-    cvstate_tcp_server = new QTcpServer(this);
-    cvstate_tcp_server->listen(QHostAddress::Any, port);
-    cvstate_tcp_server->waitForNewConnection(-1);
-    qDebug() << "Driver is connected.";
-    QTcpSocket* driver = cvstate_tcp_server->nextPendingConnection();
-    connect(driver, SIGNAL(readyRead()), this, SLOT(getState()));
-    connect(driver, SIGNAL(disconnected()), this, SLOT(driverDisconnected()));
-    proc_enabled = process_state::disable;
+void CVKernel::CVIONode::stop()
+{
+    guard_lock.lock();
+        if(state != process_state::stopped) {
+            state = process_state::stopped;
+        }
+    guard_lock.unlock();
 }
 
-void CVIONode::process() {
+void CVKernel::CVIONode::close()
+{
+    guard_lock.lock();
+        if(state != process_state::closed) {
+            state = process_state::closed;
+        }
+        run_cv.wakeOne();
+    guard_lock.unlock();
+}
+
+void CVKernel::CVIONode::process()
+{
+    guard_lock.lock();
+        if (state != process_state::run)
+            run_cv.wait(&guard_lock);
+
+        if (state == process_state::run)
+            emit node_started();
+    guard_lock.unlock();
+
     cv::Mat frame;
-    bool draw_overlay = !overlay_name.isEmpty();
-    if (show_overlay)
-        cv::namedWindow(overlay_name.toStdString(), CV_WINDOW_AUTOSIZE);
+    QMap<QString, QSharedPointer<CVNodeHistory>> history = CVKernel::CVFactoryController::get_instance().create_history(params.keys());
+
     clock_t t1 = clock();
-    while(in_stream.read(frame)) {
-        switch (proc_enabled) {
-        case process_state::enable: {
-            video_timings[frame_number] = {clock(), nodes_number};
-            process_data = CVProcessData(video_name, frame, frame_number, get_fps(), draw_overlay);
-            emit nextNode(process_data, this);
-            usleep(get_delay((unsigned int)((double) (clock() - t1) / CLOCKS_PER_SEC) * 1000000));
-            cv::Mat overlay = video_data[video_name].overlay;
-            if (!overlay.empty()) {
-                if (!out_stream.isOpened())
-                    out_stream.open(overlay_name.toStdString(), 1482049860, fps, overlay.size());
-
-                out_stream << overlay;
-                if (show_overlay)
-                    cv::imshow(overlay_name.toStdString(), overlay);
-
-                frame_number++;
+    while(state != process_state::closed and in_stream.read(frame)) {
+        switch (state) {
+            case process_state::run: {
+                video_timings[frame_number] = {clock(), nodes_number};
+                QSharedPointer<CVProcessData> process_data(
+                    new CVProcessData(
+                        video_path,
+                        frame,
+                        frame_number,
+                        get_fps(),
+                        out_stream.isOpened(),
+                        params,
+                        history
+                    )
+                );
+                emit nextNode(process_data, this);
+                usleep(get_delay((unsigned int)((double) (clock() - t1) / CLOCKS_PER_SEC) * 1000000));
+                out_stream << video_data[video_path].overlay;
+                emit send_metadata(CVJsonController::pack_to_json_ascii(*process_data));
+                t1 = clock();
+                break;
             }
-            if (!process_data.data_serialized.isEmpty())
-                client_udp_socket->writeDatagram(process_data.data_serialized, *client_tx_meta_udp_addr, client_tx_meta_udp_port);
+            default: {
+                for (auto hist_item : history) {
+                    hist_item->clear_history();
+                }
+                emit node_stopped();
+                guard_lock.lock();
+                    if (state == process_state::stopped)
+                        run_cv.wait(&guard_lock);
 
-            t1 = clock();
-
-            if (frame_number % 300 == 0)
-            {
-                qInfo() << "===============================================";
-                emit print_stat();
+                    if (state == process_state::run) {
+                        t1 = clock();
+                        emit node_started();
+                    }
+                guard_lock.unlock();
+                break;
             }
-            break;
-        }
-        default:
-            usleep((int)(1000000. / get_fps()));
-            t1 = clock();
-            if (proc_enabled == process_state::conn_closed) {
-                cvstate_tcp_server->waitForNewConnection(-1);
-                proc_enabled = process_state::disable;
-            }
-            break;
         }
     }
 
-    if (show_overlay)
-        cv::destroyWindow(overlay_name.toStdString());
-    while (in_stream.isOpened()) in_stream.release();
-    qInfo() << "===============================================\nEnd of Stream";
-    if (store_output)
-        storeLog();
-    emit EOS();
+
+    guard_lock.lock();
+    emit close_udp();
+    run_cv.wait(&guard_lock);
+    guard_lock.unlock();
+    emit node_closed();
 }
 
-void CVIONode::driverDisconnected() {
-    qDebug() << "Driver is disconnected.";
-    proc_enabled = process_state::conn_closed;
-    cvstate_tcp_server->waitForNewConnection(-1);
+void CVKernel::CVIONode::udp_closed() {
+    guard_lock.lock();
+        run_cv.wakeOne();
+    guard_lock.unlock();
 }
 
-void CVIONode::getState() {
-    QTcpSocket* driver = (QTcpSocket*)sender();
-    char com = 0;
-    driver->read(&com, 1);
-    if (com == 'e') {
-        proc_enabled = process_state::enable;
-        qInfo() << "Processing enabled";
-    } else if (com == 's') {
-        proc_enabled = process_state::disable;
-        qInfo() << "Processing disabled";
-    }
-}
-
-void CVIONode::storeLog() {
-    QJsonArray video;
-
-    QMapIterator<std::pair<int, QString>, QSharedPointer<CVNodeData>> it(stored_output);
-    while (it.hasNext()) {
-        it.next();
-        QJsonObject flameObjs;
-        if (it.key().second == "FlameSrcBBox")
-        {
-            QJsonArray bboxes;
-            QSharedPointer<DataFireBBox> flame_src_bboxes = it.value().dynamicCast<DataFireBBox>();
-            for (auto& bbox : flame_src_bboxes->fire_bboxes)
-            {
-                QJsonObject rect;
-                rect["x"] = ((double) bbox.rect.x / frame_width) * 100;
-                rect["y"] = ((double) bbox.rect.y / frame_height) * 100;
-                rect["w"] = ((double) (bbox.rect.x + bbox.rect.width) / frame_width) * 100;
-                rect["h"] = ((double) (bbox.rect.y + bbox.rect.height) / frame_height) * 100;
-                bboxes.append(rect);
-            }
-            flameObjs["frame_num"] = it.key().first;
-            flameObjs["bboxes"] = bboxes;
-        }
-        video.append(flameObjs);
-    }
-
-    QJsonDocument jdoc(video);
-
-    QString json = overlay_name + "_log.json";
-
-    QFile json_file(json);
-    if (!json_file.open(QIODevice::WriteOnly | QIODevice::Text))
-        return;
-
-    QTextStream stream(&json_file);
-    stream << jdoc.toJson();
-    json_file.close();
-    qInfo() << "Log has saved.";
-}
-
-
-CVProcessingNode::CVProcessingNode(bool ip_deliver_en, bool draw_overlay_en) :
-    QObject(nullptr), ip_mutex(new QMutex) {
+CVKernel::CVProcessingNode::CVProcessingNode() :
+    QObject(nullptr), aver_time_mutex(new QMutex) {
     fill_buf = false;
-    counter = 0;
+    frame_counter = 0;
     average_time = 0.;
-    ip_deliever = ip_deliver_en;
-    draw_overlay = draw_overlay_en;
+    frame_processed = 0;
 }
 
-void CVProcessingNode::calcAverageTime() {
+void CVKernel::CVProcessingNode::calcAverageTime() {
+    aver_time_mutex->lock();
     average_time = 0.;
 
     if (fill_buf) {
-        counter %= SIZE_BUF;
+        frame_counter %= SIZE_BUF;
         for(int i = 0; i < SIZE_BUF; ++i) average_time += timings[i] / SIZE_BUF;
     } else {
-        for(int i = 0; i < counter; ++i) average_time += timings[i] / counter;
-        if (counter == SIZE_BUF) { fill_buf = true; counter %= SIZE_BUF; }
+        for(int i = 0; i < frame_counter; ++i) average_time += timings[i] / frame_counter;
+        if (frame_counter == SIZE_BUF) { fill_buf = true; frame_counter %= SIZE_BUF; }
     }
+    aver_time_mutex->unlock();
 }
 
-void CVProcessingNode::process(CVProcessData process_data, CVIONode *stream_node) {
+void CVKernel::CVProcessingNode::process(QSharedPointer<CVProcessData> process_data, CVIONode *stream_node) {
     clock_t start = clock();
     QSharedPointer<CVNodeData> node_data = compute(process_data);
-    process_data.data[QString(this->metaObject()->className())] = node_data;
-    timings[counter++] = (double)(clock() - start) / CLOCKS_PER_SEC;
-    auto clocks = stream_node->video_timings.find(process_data.frame_num);
-    average_delay = ((double)average_delay * frame_processed + (double)(clock() - clocks->first) / CLOCKS_PER_SEC) / ++frame_processed;
+    process_data->data[QString(this->metaObject()->className())] = node_data;
+    timings[frame_counter++] = (double)(clock() - start) / CLOCKS_PER_SEC;
+    auto clocks = stream_node->video_timings.find(process_data->frame_num);
+    if (clocks != stream_node->video_timings.end())
+        average_delay = ((double)average_delay * frame_processed + (double)(clock() - clocks->first) / CLOCKS_PER_SEC) / ++frame_processed;
     calcAverageTime();
-
-    if (stream_node->store_output and ip_deliever)
-        stream_node->stored_output[std::make_pair(stream_node->frame_number, this->metaObject()->className())] = node_data;
 
     if (--clocks->second == 0)
         stream_node->video_timings.erase(clocks);
-    emit pushLog(process_data.video_name, make_log(node_data));
+
     emit nextNode(process_data, stream_node);
 }
 
-void CVProcessingNode::printStat() {
-    ip_mutex->lock();
-    std::cout << "Thread '" << this->metaObject()->className() << "' (" << std::hex << (unsigned long)this << ") has " << std::dec << average_delay << " seconds lag" << std::endl;
-    ip_mutex->unlock();
-    emit nextStat();
+double CVKernel::CVProcessingNode::averageTime()
+{
+    aver_time_mutex->lock();
+    double result = average_time;
+    aver_time_mutex->unlock();
+    return result;
 }

@@ -9,80 +9,85 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
-DataFireValidation::DataFireValidation(int rows, int cols) :
+FireValidationData::FireValidationData(int rows, int cols) :
     CVKernel::CVNodeData() {
     mask = cv::Mat(rows, cols, cv::DataType<uchar>::type);
 }
 
-DataFireValidation::~DataFireValidation() {}
+FireValidationData::~FireValidationData() {}
 
-FireValidation::FireValidation(bool ip_del, bool over_draw) :
-    CVProcessingNode(ip_del, over_draw) {
-    alpha1 = 0.25;
-    alpha2 = 0.75;
-    dma_thresh = 12.;
+FireValidationParams::FireValidationParams(QJsonObject& json_obj) : CVKernel::CVNodeParams(json_obj)
+{
+    QJsonObject::iterator iter;
+    alpha1 = (iter = json_obj.find("alpha1")) == json_obj.end() ? 0.25 : iter.value().toDouble();
+    alpha2 = (iter = json_obj.find("alpha2")) == json_obj.end() ? 0.75 : iter.value().toDouble();
+    dma_thresh = (iter = json_obj.find("dma_thresh")) == json_obj.end() ? 12. : iter.value().toDouble();
 }
 
 template<class Type1, class Type2> double FireValidation::dist(cv::Point3_<Type1> p1, cv::Point3_<Type2> p2) {
     return sqrt(pow((float)p1.x - (float)p2.x, 2.) + pow((float)p1.y - (float)p2.y, 2.) + pow((float)p1.z - (float)p2.z, 2.));
 }
 
+QSharedPointer<CVKernel::CVNodeData> FireValidation::compute(QSharedPointer<CVKernel::CVProcessData> process_data) {
+    cv::Mat frame = CVKernel::video_data[process_data->video_name].frame;
+    cv::Mat rgbSignal = dynamic_cast<DataRFireMM *>(process_data->data["RFireMaskingModel"].data())->mask;
+    QSharedPointer<FireValidationData> result(new FireValidationData(frame.rows, frame.cols));
+    QSharedPointer<FireValidationHistory> history = process_data->history[metaObject()->className()].staticCast<FireValidationHistory>();
+    QSharedPointer<FireValidationParams> params = process_data->params[metaObject()->className()].staticCast<FireValidationParams>();
 
-QSharedPointer<CVKernel::CVNodeData> FireValidation::compute(CVKernel::CVProcessData &process_data) {
-    cv::Mat frame = CVKernel::video_data[process_data.video_name].frame;
-    cv::Mat rgbSignal = dynamic_cast<DataRFireMM *>(process_data.data["RFireMaskingModel"].data())->mask;
-    QSharedPointer<DataFireValidation> result(new DataFireValidation(frame.rows, frame.cols));
-
-    if (process_data.frame_num == 1) {
-        ema = frame.clone();
-        ema.convertTo(ema, CV_32FC3);
-        dma = cv::Mat(frame.rows, frame.cols, CV_32FC1);
+    if (history->deffered_init) {
+        history->ema = frame.clone();
+        history->ema.convertTo(history->ema, CV_32FC3);
+        history->dma = cv::Mat(frame.rows, frame.cols, CV_32FC1);
+        history->deffered_init = false;
         return result;
     }
 
     uchar* frame_matr       = frame.data;
     uchar* rgbSignal_matr   = rgbSignal.data;
-    float* ema_matr         = (float*)ema.data;
-    float* dma_matr         = (float*)dma.data;
+    float* ema_matr         = (float*) history->ema.data;
+    float* dma_matr         = (float*) history->dma.data;
     uchar* res_mask         = result->mask.data;
 
-    if (!draw_overlay) {
+    if (!params->draw_overlay) {
     #pragma omp parallel for
         for (int i = 0; i < frame.rows; ++i) {
             for (int j = 0; j < frame.cols; ++j) {
                 int id = i * frame.cols + j;
                 if (rgbSignal_matr[id]) {
-                    for (int k = 0; k < 3; ++k)
-                       ema_matr[id * 3 + k] = ema_matr[id * 3 + k] * (1. - alpha1) + (float) frame_matr[id * 3 + k] * alpha1;
-                    dma_matr[id] = (1. - alpha2) * dma_matr[id] + sqrt(
+                    for (int k = 0; k < 3; ++k) {
+                       ema_matr[id * 3 + k] = ema_matr[id * 3 + k] * (1. - params->alpha1) + (float) frame_matr[id * 3 + k] * params->alpha1;
+                    }
+                    dma_matr[id] = (1. - params->alpha2) * dma_matr[id] + sqrt(
                         pow((float) frame_matr[id * 3]      - ema_matr[id * 3],     2.) +
                         pow((float) frame_matr[id * 3 + 1]  - ema_matr[id * 3 + 1], 2.) +
                         pow((float) frame_matr[id * 3 + 2]  - ema_matr[id * 3 + 2], 2.)
-                    ) * alpha2;
+                    ) * params->alpha2;
                 } else
-                    dma_matr[id] = (1. - alpha2) * dma_matr[id] + alpha2 * 10;
-                res_mask[id] = dma_matr[id] >= dma_thresh ? 1 : 0;
+                    dma_matr[id] = (1. - params->alpha2) * dma_matr[id] + params->alpha2 * 10;
+                res_mask[id] = dma_matr[id] >= params->dma_thresh ? 1 : 0;
             }
         }
     } else {
-        cv::Mat overlay = CVKernel::video_data[process_data.video_name].overlay;
+        cv::Mat overlay = CVKernel::video_data[process_data->video_name].overlay;
         uchar* overlay_matr     = overlay.data;
     #pragma omp parallel for
         for (int i = 0; i < frame.rows; ++i) {
             for (int j = 0; j < frame.cols; ++j) {
                 int id = i * frame.cols + j;
                 if (rgbSignal_matr[id]) {
-                    for (int k = 0; k < 3; ++k)
-                       ema_matr[id * 3 + k] = ema_matr[id * 3 + k] * (1. - alpha1) + (float) frame_matr[id * 3 + k] * alpha1;
-                    dma_matr[id] = (1. - alpha2) * dma_matr[id] + sqrt(
+                    for (int k = 0; k < 3; ++k) {
+                       ema_matr[id * 3 + k] = ema_matr[id * 3 + k] * (1. - params->alpha1) + (float) frame_matr[id * 3 + k] * params->alpha1;
+                    }
+                    dma_matr[id] = (1. - params->alpha2) * dma_matr[id] + sqrt(
                         pow((float) frame_matr[id * 3]      - ema_matr[id * 3],     2.) +
                         pow((float) frame_matr[id * 3 + 1]  - ema_matr[id * 3 + 1], 2.) +
                         pow((float) frame_matr[id * 3 + 2]  - ema_matr[id * 3 + 2], 2.)
-                    ) * alpha2;
+                    ) * params->alpha2;
                 } else
-                    dma_matr[id] = (1. - alpha2) * dma_matr[id] + alpha2 * 10;
+                    dma_matr[id] = (1. - params->alpha2) * dma_matr[id] + params->alpha2 * 10;
 
-                if (dma_matr[id] >= dma_thresh) {
+                if (dma_matr[id] >= params->dma_thresh) {
                     overlay_matr[id * 3] = 0xff;
                     overlay_matr[id * 3 + 1] = frame_matr[id * 3 + 1];
                     overlay_matr[id * 3 + 2] = frame_matr[id * 3 + 2];

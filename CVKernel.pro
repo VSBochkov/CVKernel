@@ -25,7 +25,11 @@ SOURCES += main.cpp \
     videoproc/firevalidation.cpp \
     videoproc/firebbox.cpp \
     videoproc/fireweight.cpp \
-    videoproc/flamesrcbbox.cpp
+    videoproc/flamesrcbbox.cpp \
+    cvnetworkmanager.cpp \
+    cvapplication.cpp \
+    cvjsoncontroller.cpp \
+    cvconnector.cpp
 
 HEADERS += \
     cvgraphnode.h \
@@ -35,4 +39,10 @@ HEADERS += \
     videoproc/firevalidation.h \
     videoproc/firebbox.h \
     videoproc/fireweight.h \
-    videoproc/flamesrcbbox.h
+    videoproc/flamesrcbbox.h \
+    cvnetworkmanager.h \
+    cvapplication.h \
+    cvjsoncontroller.h \
+    videoproc/firedetectionfactory.h \
+    cvfactorycontroller.h \
+    cvconnector.h

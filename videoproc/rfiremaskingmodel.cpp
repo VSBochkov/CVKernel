@@ -9,16 +9,14 @@ DataRFireMM::DataRFireMM(int rows, int cols) :
 
 DataRFireMM::~DataRFireMM() {}
 
-RFireMaskingModel::RFireMaskingModel(bool ip_del, bool over_draw) :
-    CVProcessingNode(ip_del, over_draw) {}
-
-QSharedPointer<CVKernel::CVNodeData> RFireMaskingModel::compute(CVKernel::CVProcessData &process_data) {
-    cv::Mat frame = CVKernel::video_data[process_data.video_name].frame;
+QSharedPointer<CVKernel::CVNodeData> RFireMaskingModel::compute(QSharedPointer<CVKernel::CVProcessData> process_data) {
+    cv::Mat frame = CVKernel::video_data[process_data->video_name].frame;
+    QSharedPointer<RFireParams> params = process_data->params[metaObject()->className()].staticCast<RFireParams>();
     QSharedPointer<DataRFireMM> result(new DataRFireMM(frame.rows, frame.cols));
     uchar* frame_matr = frame.data;
     uchar* res_matr   = result->mask.data;
 
-    if (!draw_overlay) {
+    if (!params->draw_overlay) {
     #pragma omp parallel for
         for (int i = 0; i < frame.rows; ++i) {
             for (int j = 0; j < frame.cols; ++j) {
@@ -28,7 +26,7 @@ QSharedPointer<CVKernel::CVNodeData> RFireMaskingModel::compute(CVKernel::CVProc
             }
         }
     } else {
-        cv::Mat overlay = CVKernel::video_data[process_data.video_name].overlay;
+        cv::Mat overlay = CVKernel::video_data[process_data->video_name].overlay;
         uchar* over_matr  = overlay.data;
 
     #pragma omp parallel for
@@ -45,7 +43,7 @@ QSharedPointer<CVKernel::CVNodeData> RFireMaskingModel::compute(CVKernel::CVProc
         }
     }
 
-//    cv::Mat rgb_rmodel = CVKernel::video_data[process_data.video_name].debug_overlay.rowRange(overlay.rows, overlay.rows * 2);
+//    cv::Mat rgb_rmodel = CVKernel::video_data[process_data->video_name].debug_overlay.rowRange(overlay.rows, overlay.rows * 2);
 //    cv::cvtColor(result->mask * 255, rgb_rmodel, CV_GRAY2BGR);
 
     return result;
