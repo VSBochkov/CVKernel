@@ -131,6 +131,12 @@ namespace CVKernel {
         QJsonObject pack_to_json();
     };
 
+    struct CVSupervisorStartup {
+        QList<QSharedPointer<CVClient>> client_list;
+        CVSupervisorStartup(QMap<QTcpSocket*, CVConnector*> connectors);
+        QJsonObject pack_to_json();
+    };
+
     struct CVCommand {
         enum command_value {run = 0, stop = 1, close = 2} command;
         CVCommand(QJsonObject& json_object);

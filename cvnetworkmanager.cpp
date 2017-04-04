@@ -58,6 +58,7 @@ void CVKernel::CVNetworkManager::add_new_connector(QTcpSocket* socket)
     } else if (connector->type == CVConnectorType::supervisor) {
         CVSupervisor* new_supervisor = new CVSupervisor(connector_id++, process_manager, this, socket);
         new_supervisor->send_buffer(CVJsonController::pack_to_json_ascii<CVSupervisorState>(CVSupervisorState(new_supervisor)));
+        new_supervisor->send_buffer(CVJsonController::pack_to_json_ascii<CVSupervisorStartup>(CVSupervisorStartup(connectors)));
         connectors[socket] = new_supervisor;
     }
 }

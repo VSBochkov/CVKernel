@@ -10,6 +10,14 @@ CVKernel::CVClientChangedParams::CVClientChangedParams(CVClient *client)
       state(client),
       overlay_path(client->video_io->get_overlay_path()) {}
 
+CVKernel::CVSupervisorStartup::CVSupervisorStartup(QMap<QTcpSocket*, CVConnector*> connectors)
+{
+    for (auto connector : connectors) {
+        if (CVClient* client = dynamic_cast<CVClient*>(connector))
+            client_list.push_back(QSharedPointer<CVClient>(client));
+    }
+}
+
 void CVKernel::CVConnector::send_buffer(QByteArray byte_arr)
 {
     quint64 arr_size = (quint64) byte_arr.size();

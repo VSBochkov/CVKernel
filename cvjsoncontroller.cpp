@@ -160,3 +160,19 @@ QJsonObject CVKernel::CVSupervisorChangedParams::pack_to_json() {
     sup_json["state"] = state.state;
     return sup_json;
 }
+
+QJsonObject CVKernel::CVSupervisorStartup::pack_to_json() {
+    QJsonObject clients_json;
+    QJsonArray clients_json_array;
+    for (QSharedPointer<CVClient>& client : client_list)
+    {
+        QJsonObject client_json;
+        client_json["id"] = (int) client->id;
+        client_json["state"] = CVClientState(client.data()).state;
+        client_json["used_proc_nodes"] = client->video_io->nodes_number;
+        client_json["overlay_path"] = client->video_io->get_overlay_path();
+        clients_json_array.push_back(client_json);
+    }
+    clients_json["clients"] = clients_json_array;
+    return clients_json;
+}
