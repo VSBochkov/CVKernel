@@ -84,7 +84,7 @@ std::vector<obj_bbox> FireBBox::calc_bboxes(cv::Mat proc_mask, cv::Mat overlay, 
     if (!history->base_bboxes.empty()) {
         for (auto& bbox : bboxes) {
             double best_rel_koeff = 0.;
-            obj_bbox* target_obj;
+            obj_bbox* target_obj = nullptr;
             for (auto& base_bbox : history->base_bboxes) {
                 if (intersection(bbox, base_bbox.rect).area() > params->intersect_thresh) {
                     double relation_koeff = bbox.area() > base_bbox.rect.area() ? ((double)base_bbox.rect.area() / (double)bbox.area()) : ((double)bbox.area() / (double)base_bbox.rect.area());
@@ -94,7 +94,7 @@ std::vector<obj_bbox> FireBBox::calc_bboxes(cv::Mat proc_mask, cv::Mat overlay, 
                     }
                 }
             }
-            if (best_rel_koeff > 0.) {
+            if (best_rel_koeff > 0. and target_obj != nullptr) {
                 target_obj->last_fnum = process_data.frame_num;
                 target_obj->rect = bbox;
             } else

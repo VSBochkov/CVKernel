@@ -4,6 +4,8 @@
 #include "cvapplication.h"
 #include "cvgraphnode.h"
 #include "cvconnector.h"
+#include "implementation/cvclient.h"
+#include "implementation/cvsupervisor.h"
 
 #include <QFile>
 #include <QTextStream>
@@ -12,9 +14,11 @@
 #include <QJsonArray>
 
 
-CVKernel::CVNetworkManagerSettings::CVNetworkManagerSettings(QJsonObject& json_object) {
-    QJsonObject::iterator iter = json_object.find("tcp_server_port");
-    tcp_server_port = iter == json_object.end() ? 0 : iter.value().toInt();
+CVKernel::CVNetworkSettings::CVNetworkSettings(QJsonObject& json_object) {
+    QJsonObject::iterator iter;
+    mac_address = (iter = json_object.find("mac_address")) == json_object.end() ? "" : iter.value().toString();
+    udp_broadcast_port = (iter = json_object.find("udp_broadcast_port")) == json_object.end() ? 0 : iter.value().toInt();
+    tcp_server_port = (iter = json_object.find("tcp_server_port")) == json_object.end() ? 0 : iter.value().toInt();
 }
 
 CVKernel::CVConnectorType::CVConnectorType(QJsonObject& json_obj) {
@@ -111,6 +115,14 @@ CVKernel::CVNodeParams::CVNodeParams(QJsonObject& json_obj) {
     draw_overlay = iter == json_obj.end() ? false : iter.value().toBool();
 }
 
+QJsonObject CVKernel::CVApplicationState::pack_to_json() {
+    QJsonObject app_state_json;
+    app_state_json["mac_address"] = mac_address;
+    app_state_json["ip_address"] = ip_address;
+    app_state_json["state"] = state;
+    return app_state_json;
+}
+
 QJsonObject CVKernel::CVProcessData::pack_to_json() {
     QJsonObject metadata_json;
     for (auto it = data.begin(); it != data.end(); it++) {
@@ -127,52 +139,11 @@ QJsonObject CVKernel::CVNodeData::pack_to_json() {
 }
 
 QJsonObject CVKernel::CVConnectorState::pack_to_json() {
-    QJsonObject state_json;
-    state_json["state"] = state;
-    return state_json;
-}
-
-
-QJsonObject CVKernel::CVSupervisionInfo::pack_to_json() {
-    QJsonObject sup_json;
-    sup_json["connected_clients"] = connected_clients;
-    sup_json["used_process_nodes"] = used_process_nodes;
-    QJsonObject timings_json;
-    for (auto iter = average_timings.begin(); iter != average_timings.end(); iter++)
-    {
-        timings_json[iter.key()] = iter.value();
-    }
-    sup_json["average_timings"] = timings_json;
-    return sup_json;
-}
-
-QJsonObject CVKernel::CVClientChangedParams::pack_to_json() {
-    QJsonObject client_json;
-    client_json["id"] = (int) id;
-    client_json["state"] = state.state;
-    client_json["overlay_path"] = overlay_path;
-    return client_json;
-}
-
-QJsonObject CVKernel::CVSupervisorChangedParams::pack_to_json() {
-    QJsonObject sup_json;
-    sup_json["id"] = (int) id;
-    sup_json["state"] = state.state;
-    return sup_json;
-}
-
-QJsonObject CVKernel::CVSupervisorStartup::pack_to_json() {
-    QJsonObject clients_json;
-    QJsonArray clients_json_array;
-    for (QSharedPointer<CVClient>& client : client_list)
-    {
-        QJsonObject client_json;
-        client_json["id"] = (int) client->id;
-        client_json["state"] = CVClientState(client.data()).state;
-        client_json["used_proc_nodes"] = client->video_io->nodes_number;
-        client_json["overlay_path"] = client->video_io->get_overlay_path();
-        clients_json_array.push_back(client_json);
-    }
-    clients_json["clients"] = clients_json_array;
-    return clients_json;
+    QJsonObject conn_st_json;
+    conn_st_json["id"] = (int) connector.get_id();
+    conn_st_json["state"] = (int) state;
+    CVClient& client = static_cast<CVClient&>(connector);
+    if (&client != nullptr)
+        conn_st_json["overlay_path"] = client.get_overlay_path();
+    return conn_st_json;
 }

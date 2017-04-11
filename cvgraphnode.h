@@ -13,6 +13,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 
+#include <memory>
 
 #define SIZE_BUF 20
 
@@ -58,6 +59,64 @@ namespace CVKernel {
         QJsonObject pack_to_json();
     };
 
+    enum class ionode_state
+    {
+        closed = 0,
+        run,
+        stopped
+    };
+
+    class CVIONode;
+
+    struct CVIONodeState
+    {
+        CVIONodeState(CVIONode& node) : io_node(node) {}
+        virtual ~CVIONodeState() = default;
+        virtual void process() = 0;
+        CVIONode& io_node;
+    };
+
+    struct CVIONodeRun : CVIONodeState
+    {
+        CVIONodeRun(CVIONode& node) : CVIONodeState(node) {}
+        virtual void process() override;
+    };
+
+    struct CVIONodeStopped : CVIONodeState
+    {
+        CVIONodeStopped(CVIONode& node) : CVIONodeState(node) {}
+        virtual void process() override;
+    };
+
+    struct CVIONodeClosed : CVIONodeState
+    {
+        CVIONodeClosed(CVIONode& node) : CVIONodeState(node) {}
+        virtual void process() override;
+    };
+
+    struct CVStopwatch
+    {
+        void start()
+        {
+            t1 = clock();
+        }
+
+        clock_t now()
+        {
+            return clock();
+        }
+
+        useconds_t time() {
+            unsigned int micros_spent = (unsigned int)((double) (clock() - t1) / CLOCKS_PER_SEC) * 1000000;
+            unsigned int delay = (unsigned int)(1000000. / fps);
+            delay += delay * fps >= 1000000. ? 0 : 1;
+            return (useconds_t) (((int)delay - (int)micros_spent) > 0 ? delay - micros_spent : 0);
+        }
+
+        clock_t t1;
+        double fps;
+    };
+
     class CVIONode : public QObject {
         Q_OBJECT
     public:
@@ -67,34 +126,28 @@ namespace CVKernel {
                           QMap<QString, QSharedPointer<CVNodeParams>>& pars);
         virtual ~CVIONode();
 
-        double get_fps() { return fps; }
-
-        useconds_t get_delay(unsigned int micros_spent) {
-            unsigned int delay = (unsigned int)(1000000. / fps);
-            delay += delay * fps >= 1000000. ? 0 : 1;
-            return (useconds_t) (((int)delay - (int)micros_spent) > 0 ? delay - micros_spent : 0);
-        }
+        double get_fps() { return stopwatch.fps; }
 
         QString get_overlay_path() { return overlay_path; }
 
     public:
-        void start();
-        void stop();
-        void close();
         void udp_closed();
+
+        void on_run();
+        void on_stopped();
+        void on_closed();
 
     signals:
         void nextNode(QSharedPointer<CVProcessData> process_data, CVIONode *stream_node);
-
         void send_metadata(QByteArray);
-
-        void node_started();
-        void node_stopped();
-        void node_closed();
         void close_udp();
+        void node_closed();
 
     public slots:
         void process();
+        void start();
+        void stop();
+        void close();
 
     private:
         cv::VideoCapture in_stream;
@@ -106,10 +159,11 @@ namespace CVKernel {
         int frame_height;
         QMap<QString, QSharedPointer<CVNodeParams>> params;
         QMutex guard_lock;
-        QWaitCondition run_cv;
-        double fps;
+        QWaitCondition state_changed_cv;
         double proc_frame_scale;
-        enum class process_state {closed = 0, run, stopped} state;
+        std::unique_ptr<CVIONodeState> state;
+        QMap<QString, QSharedPointer<CVNodeHistory>> history;
+        CVStopwatch stopwatch;
 
     public:
         QMap<int, std::pair<clock_t,int>> video_timings;

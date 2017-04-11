@@ -8,6 +8,7 @@
 
 #include <QTcpSocket>
 #include <QString>
+#include <QSharedPointer>
 
 namespace CVKernel {
     class CVIONode;
@@ -43,7 +44,9 @@ namespace CVKernel {
     public:
         CVProcessForest(QJsonObject& json_obj);
         ~CVProcessForest() {
-            for (CVKernel::CVProcessTree* tree : proc_forest) delete tree;
+            for (CVKernel::CVProcessTree* tree : proc_forest) {
+                delete tree;
+            }
             proc_forest.clear();
         }
 
@@ -69,9 +72,8 @@ namespace CVKernel {
     class CVProcessManager : public QObject {
         Q_OBJECT
     public:
-        explicit CVProcessManager(QObject* parent = 0, CVNetworkManager* net_manager = 0);
+        explicit CVProcessManager(QObject* parent = 0);
         virtual ~CVProcessManager();
-        CVIONode* add_new_stream(CVProcessForest& forest);
         QMap<QString, double> get_average_timings();
 
         void purpose_processes(
@@ -79,22 +81,7 @@ namespace CVKernel {
             CVIONode* video_io
         );
 
-    signals:
-        void io_node_created(QTcpSocket*, CVIONode*);
-        void io_node_started(CVIONode*);
-        void io_node_stopped(CVIONode*);
-        void io_node_closed(CVIONode*);
-
-    public slots:
-        void add_new_stream(QTcpSocket* client, QSharedPointer<CVProcessForest> proc_forest);
-        void start_stream(CVIONode* io_node);
-        void on_stream_started();
-        void stop_stream(CVIONode* io_node);
-        void on_stream_stopped();
-        void close_stream(CVIONode* io_node);
-        void close_threads();
-        void on_stream_closed();
-        void on_udp_closed(CVIONode* io_node);
+        CVIONode* add_new_stream(QSharedPointer<CVProcessForest> proc_forest);
 
     private:
         void parse_cv_kernel_settings_json(QString json_fname);
@@ -115,10 +102,8 @@ namespace CVKernel {
             }
         };
         QList<connection> connections;
-        QList<CVIONode*> io_nodes;
-        CVNetworkManager* network_manager;
         QMap<QString, QList<CVProcessingNode*>> cv_processor;
-        
+
     public:
         QSet<CVProcessingNode*> processing_nodes;
         double max_fps;

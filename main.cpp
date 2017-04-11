@@ -10,6 +10,6 @@ int main(int argc, char *argv[])
     qRegisterMetaType<QSharedPointer<CVKernel::CVProcessForest>>("QSharedPointer<CVProcessForest>");
     QList<CVKernel::CVNodeFactory*> factories = { new FireDetectionFactory };
     CVKernel::CVFactoryController::get_instance().set_factories(factories);
-    CVKernel::CVApplication* cv_kernel(new CVKernel::CVApplication("../cv_kernel_settings.json"));
+    new CVKernel::CVApplication("../cv_kernel_settings.json");
     return app.exec();
 }

@@ -16,19 +16,12 @@
 #include <iostream>
 
 
-CVKernel::CVProcessManager::CVProcessManager(QObject* parent, CVNetworkManager* net_manager) : QObject(parent), network_manager(net_manager)
+CVKernel::CVProcessManager::CVProcessManager(QObject* parent) : QObject(parent)
 {
-    connect(network_manager, SIGNAL(got_process_forest(QTcpSocket*,QSharedPointer<CVProcessForest>)), this, SLOT(add_new_stream(QTcpSocket*,QSharedPointer<CVProcessForest>)));
-    connect(network_manager, SIGNAL(run_io_node(CVIONode*)), this, SLOT(start_stream(CVIONode*)));
-    connect(network_manager, SIGNAL(stop_io_node(CVIONode*)), this, SLOT(stop_stream(CVIONode*)));
-    connect(network_manager, SIGNAL(close_io_node(CVIONode*)), this, SLOT(close_stream(CVIONode*)));
-    connect(network_manager, SIGNAL(udp_closed(CVIONode*)), this, SLOT(on_udp_closed(CVIONode*)));
 }
 
-void CVKernel::CVProcessManager::close_threads() {}
-
-CVKernel::CVProcessManager::~CVProcessManager() {
-    close_threads();
+CVKernel::CVProcessManager::~CVProcessManager()
+{
 }
 
 CVKernel::CVProcessTree::CVProcessTree(CVProcessTree::Node* root_node) {
@@ -116,7 +109,7 @@ void CVKernel::CVProcessManager::purpose_processes(
     }
 }
 
-void CVKernel::CVProcessManager::add_new_stream(QTcpSocket* socket, QSharedPointer<CVProcessForest> forest) {
+CVKernel::CVIONode* CVKernel::CVProcessManager::add_new_stream(QSharedPointer<CVProcessForest> forest) {
     CVIONode* io(forest->video_in.isEmpty() ?
         new CVIONode(forest->device_in, forest->video_out, forest->frame_width, forest->frame_height, forest->fps, forest->params_map) :
         new CVIONode(forest->video_in, forest->video_out, forest->frame_width, forest->frame_height, forest->fps, forest->params_map)
@@ -129,18 +122,13 @@ void CVKernel::CVProcessManager::add_new_stream(QTcpSocket* socket, QSharedPoint
     connect(io_thread, SIGNAL(started()), io, SLOT(process()));
     connect(io, SIGNAL(node_closed()), io_thread, SLOT(quit()));
     connect(io_thread, SIGNAL(finished()), io, SLOT(deleteLater()));
-
-    connect(io, SIGNAL(node_started()), this, SLOT(on_stream_started()));
-    connect(io, SIGNAL(node_stopped()), this, SLOT(on_stream_stopped()));
-    connect(io, SIGNAL(node_closed()), this, SLOT(on_stream_closed()));
-
     max_fps = max_fps >= io->get_fps() ? max_fps : io->get_fps();
 
     purpose_processes(forest->proc_forest, io);
 
     io_thread->start();
 
-    emit io_node_created(socket, io);
+    return io;
 }
 
 QMap<QString, double> CVKernel::CVProcessManager::get_average_timings()
@@ -151,43 +139,4 @@ QMap<QString, double> CVKernel::CVProcessManager::get_average_timings()
         timings[node->metaObject()->className()] = node->averageTime();
     }
     return timings;
-}
-
-void CVKernel::CVProcessManager::start_stream(CVIONode* io_node)
-{
-    io_node->start();
-}
-
-void CVKernel::CVProcessManager::on_stream_started()
-{
-    CVIONode* io_node = (CVIONode*) sender();
-    emit io_node_started(io_node);
-}
-
-void CVKernel::CVProcessManager::stop_stream(CVIONode* io_node)
-{
-    io_node->stop();
-}
-
-void CVKernel::CVProcessManager::on_stream_stopped()
-{
-    CVIONode* io_node = (CVIONode*) sender();
-    emit io_node_stopped(io_node);
-}
-
-void CVKernel::CVProcessManager::close_stream(CVIONode* io_node)
-{
-    io_node->close();
-}
-
-void CVKernel::CVProcessManager::on_udp_closed(CVIONode* io_node)
-{
-    io_node->udp_closed();
-}
-
-void CVKernel::CVProcessManager::on_stream_closed()
-{
-    CVIONode* io_node = (CVIONode*) sender();
-    emit io_node_closed(io_node);
-    io_node->thread()->exit();
 }

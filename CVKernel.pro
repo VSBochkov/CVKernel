@@ -11,7 +11,7 @@ QT       += widgets
 TARGET = CVKernel
 CONFIG   += console
 CONFIG   -= app_bundle
-QMAKE_CXXFLAGS  += -std=c++11 -fopenmp -O3
+QMAKE_CXXFLAGS  += -std=c++14 -fopenmp -O3
 QMAKE_LFLAGS    += -fopenmp
 LIBS += `pkg-config --cflags --libs opencv`
 TEMPLATE = app
@@ -29,7 +29,9 @@ SOURCES += main.cpp \
     cvnetworkmanager.cpp \
     cvapplication.cpp \
     cvjsoncontroller.cpp \
-    cvconnector.cpp
+    cvconnector.cpp \
+    implementation/cvclient.cpp \
+    implementation/cvsupervisor.cpp
 
 HEADERS += \
     cvgraphnode.h \
@@ -45,4 +47,6 @@ HEADERS += \
     cvjsoncontroller.h \
     videoproc/firedetectionfactory.h \
     cvfactorycontroller.h \
+    implementation/cvclient.h \
+    implementation/cvsupervisor.h \
     cvconnector.h

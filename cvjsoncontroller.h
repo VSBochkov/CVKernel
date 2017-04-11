@@ -49,6 +49,15 @@ namespace CVKernel {
             return json_doc.toJson(QJsonDocument::Compact);
         }
 
+        template <class Structure> static QByteArray pack_to_json_ascii(Structure* data) {
+            QJsonObject json_obj = data->pack_to_json();
+            if (json_obj.empty()) {
+                return QByteArray();
+            }
+            QJsonDocument json_doc(json_obj);
+            return json_doc.toJson(QJsonDocument::Compact);
+        }
+
         template <class Structure> static void pack_to_json_file(Structure data, QString json_filename) {
             QJsonObject json_obj = data.pack_to_json();
             if (json_obj.empty()) {
