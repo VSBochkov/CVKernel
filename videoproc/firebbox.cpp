@@ -107,18 +107,29 @@ std::vector<obj_bbox> FireBBox::calc_bboxes(cv::Mat proc_mask, cv::Mat overlay, 
     }
 
     std::vector<obj_bbox> result_bboxes;
-
-    int deleted = 0;
-    for (auto& base_bbox : history->base_bboxes) {
-        if ((process_data.frame_num - base_bbox.last_fnum) <= params->dtime_thresh * std::max(process_data.fps, 25.)) {
+    for (auto base_bbox_it = history->base_bboxes.begin(); base_bbox_it != history->base_bboxes.end();)
+    {
+        if ((process_data.frame_num - base_bbox_it->last_fnum) <= params->dtime_thresh * std::max(process_data.fps, 25.))
+        {
             if (params->draw_overlay)
-                cv::rectangle(overlay, base_bbox.rect, bbox_color, 1);
+            {
+                cv::rectangle(overlay, base_bbox_it->rect, bbox_color, 1);
+            }
 
-            result_bboxes.push_back(base_bbox);
-        } else
-            deleted++;
+            result_bboxes.push_back(*base_bbox_it);
+            base_bbox_it++;
+        }
+        else
+        {
+            history->base_bboxes.erase(base_bbox_it);
+        }
     }
 
+    if (params->draw_overlay)
+    {
+        for (auto& bbox : result_bboxes)
+            cv::rectangle(overlay, bbox.rect, bbox_color, 1);
+    }
     if (result_bboxes.empty())
         return result_bboxes;
 

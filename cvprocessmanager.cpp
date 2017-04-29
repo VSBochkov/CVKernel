@@ -36,7 +36,8 @@ void CVKernel::CVProcessManager::create_new_thread(CVProcessingNode* node) {
     cv_thread->start();
 }
 
-void CVKernel::CVProcessManager::purpose(CVProcessTree::Node* par, CVProcessTree::Node* curr) {
+void CVKernel::CVProcessManager::purpose(CVProcessTree::Node* par, CVProcessTree::Node* curr)
+{
     CVProcessingNode* parent_node = cv_processor[par->value].last();
     CVProcessingNode* curr_node;
     connection conn(parent_node, curr_node);
@@ -47,50 +48,57 @@ void CVKernel::CVProcessManager::purpose(CVProcessTree::Node* par, CVProcessTree
         if (parent_node == curr_node || connections.contains(conn.get_reverse()))
             return;
 
-        if (curr_node->averageTime() > 0.5 / max_fps) {
+        if (curr_node->get_average_time() > 0.5 / max_fps) {
             curr_node = CVFactoryController::get_instance().create_processing_node(curr->value);
+            create_new_thread(curr_node);
         }
     } else {
         curr_node = CVFactoryController::get_instance().create_processing_node(curr->value);
+        create_new_thread(curr_node);
     }
 
     if (curr_node != nullptr) {
         cv_processor[curr->value].push_back(curr_node);
-        create_new_thread(curr_node);
     } else {
         curr_node = cv_processor[curr->value].last();
     }
 
-    connect(parent_node, SIGNAL(nextNode(QSharedPointer<CVProcessData>, CVIONode*)), curr_node, SLOT(process(QSharedPointer<CVProcessData>, CVIONode*)), Qt::UniqueConnection);
+    connect(parent_node, SIGNAL(nextNode(QSharedPointer<CVProcessData>, CVIONode*)),
+            curr_node, SLOT(process(QSharedPointer<CVProcessData>, CVIONode*)), Qt::UniqueConnection);
     connect(parent_node, SIGNAL(destroyed()), curr_node, SLOT(deleteLater()));
 
     connections.push_back(conn);
 }
 
-void CVKernel::CVProcessManager::purpose(CVIONode* video_io, CVProcessTree::Node* root) {
+void CVKernel::CVProcessManager::purpose(CVIONode* video_io, CVProcessTree::Node* root)
+{
     CVProcessingNode* root_node;
 
     if (cv_processor.find(root->value) != cv_processor.end()) {
         root_node = cv_processor[root->value].last();
-        if (root_node->averageTime() > 0.5 / max_fps) {
+        if (root_node->get_average_time() > 0.5 / max_fps) {
             root_node = CVFactoryController::get_instance().create_processing_node(root->value);
+            create_new_thread(root_node);
         }
     } else {
         root_node = CVFactoryController::get_instance().create_processing_node(root->value);
+        create_new_thread(root_node);
     }
 
     if (root_node != nullptr) {
         cv_processor[root->value].push_back(root_node);
-        create_new_thread(root_node);
     } else {
         root_node = cv_processor[root->value].last();
     }
 
-    connect(video_io, SIGNAL(nextNode(QSharedPointer<CVProcessData>, CVIONode*)), root_node, SLOT(process(QSharedPointer<CVProcessData>, CVIONode*)));
-    connect(video_io, SIGNAL(destroyed()), root_node, SLOT(deleteLater()));
+    connect(video_io, SIGNAL(nextNode(QSharedPointer<CVProcessData>, CVIONode*)),
+            root_node, SLOT(process(QSharedPointer<CVProcessData>, CVIONode*)));
+    //connect(video_io, SIGNAL(destroyed()), root_node, SLOT(deleteLater()));
+    // TODO: make intelligent thread supervisor: if no one io node uses root processing node then delete all pipeline
 }
 
-void CVKernel::CVProcessManager::purpose_tree(CVIONode* video_io, CVProcessTree::Node* node) {
+void CVKernel::CVProcessManager::purpose_tree(CVIONode* video_io, CVProcessTree::Node* node)
+{
     for (CVProcessTree::Node* child : node->children) {
         purpose(node, child);
         purpose_tree(video_io, child);
@@ -109,16 +117,16 @@ void CVKernel::CVProcessManager::purpose_processes(
     }
 }
 
-CVKernel::CVIONode* CVKernel::CVProcessManager::add_new_stream(QSharedPointer<CVProcessForest> forest) {
+CVKernel::CVIONode* CVKernel::CVProcessManager::add_new_stream(QSharedPointer<CVProcessForest> forest)
+{
+    QThread* io_thread = new QThread;
+
     CVIONode* io(forest->video_in.isEmpty() ?
         new CVIONode(forest->device_in, forest->video_out, forest->frame_width, forest->frame_height, forest->fps, forest->params_map) :
         new CVIONode(forest->video_in, forest->video_out, forest->frame_width, forest->frame_height, forest->fps, forest->params_map)
     );
 
-    QThread* io_thread = new QThread(this);
-
     io->moveToThread(io_thread);
-
     connect(io_thread, SIGNAL(started()), io, SLOT(process()));
     connect(io, SIGNAL(node_closed()), io_thread, SLOT(quit()));
     connect(io_thread, SIGNAL(finished()), io, SLOT(deleteLater()));
@@ -127,7 +135,6 @@ CVKernel::CVIONode* CVKernel::CVProcessManager::add_new_stream(QSharedPointer<CV
     purpose_processes(forest->proc_forest, io);
 
     io_thread->start();
-
     return io;
 }
 
@@ -136,7 +143,7 @@ QMap<QString, double> CVKernel::CVProcessManager::get_average_timings()
     QMap<QString, double> timings;
     for (CVProcessingNode* node: processing_nodes)
     {
-        timings[node->metaObject()->className()] = node->averageTime();
+        timings[node->metaObject()->className()] = node->get_average_time();
     }
     return timings;
 }

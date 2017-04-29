@@ -8,6 +8,7 @@
 
 #include <QTcpSocket>
 #include <QString>
+#include <QHostAddress>
 #include <QSharedPointer>
 
 namespace CVKernel {
@@ -60,7 +61,7 @@ namespace CVKernel {
         int     device_in;
         QString video_in;
         QString video_out;
-        QString meta_udp_addr;
+        QHostAddress meta_udp_addr;
         int     meta_udp_port;
         bool    show_overlay;
         bool    store_output;

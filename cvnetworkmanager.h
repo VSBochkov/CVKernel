@@ -22,7 +22,6 @@ namespace CVKernel {
 
     struct CVNetworkSettings {
         QString mac_address = "";
-        int udp_broadcast_port = 0;
         int tcp_server_port = 0;
         CVNetworkSettings(QJsonObject& json_object);
     };
@@ -31,7 +30,7 @@ namespace CVKernel {
     {
         Q_OBJECT
     public:
-        explicit CVNetworkManager(CVNetworkSettings& settings, CVProcessManager& pm);
+        explicit CVNetworkManager(QObject* parent, CVNetworkSettings& settings, CVProcessManager& pm);
         virtual ~CVNetworkManager();
 
         QList<QSharedPointer<CVClient>> get_clients();

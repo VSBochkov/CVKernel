@@ -43,8 +43,5 @@ QSharedPointer<CVKernel::CVNodeData> RFireMaskingModel::compute(QSharedPointer<C
         }
     }
 
-//    cv::Mat rgb_rmodel = CVKernel::video_data[process_data->video_name].debug_overlay.rowRange(overlay.rows, overlay.rows * 2);
-//    cv::cvtColor(result->mask * 255, rgb_rmodel, CV_GRAY2BGR);
-
     return result;
 }

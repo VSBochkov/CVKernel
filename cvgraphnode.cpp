@@ -1,6 +1,7 @@
 #include "cvgraphnode.h"
 #include "cvjsoncontroller.h"
 #include "cvfactorycontroller.h"
+#include "cvapplication.h"
 
 #include <QTimer>
 #include <opencv2/opencv.hpp>
@@ -25,7 +26,8 @@ CVKernel::CVProcessData::CVProcessData(QString video_name, cv::Mat frame, int fn
     }
 }
 
-CVKernel::CVIONode::CVIONode(int device_id, QString overlay_path, int width, int height, double framespersecond,
+CVKernel::CVIONode::CVIONode(int device_id, QString output_path,
+                             int width, int height, double framespersecond,
                              QMap<QString, QSharedPointer<CVNodeParams>>& pars)
     : QObject(NULL),
       video_path(QString("video") + QString::number(device_id)),
@@ -45,13 +47,23 @@ CVKernel::CVIONode::CVIONode(int device_id, QString overlay_path, int width, int
     in_stream.set(CV_CAP_PROP_FRAME_HEIGHT, frame_height);
     in_stream.set(CV_CAP_PROP_FPS, stopwatch.fps);
 
-    if (not overlay_path.isEmpty())
-        out_stream.open(overlay_path.toStdString(), 1482049860, stopwatch.fps, cv::Size(frame_width, frame_height));
+    int colon_id = output_path.indexOf(":");
+    if (not output_path.isEmpty() and colon_id > 0)
+    {
+        QString protocol = output_path.left(colon_id);
+        overlay_path = (protocol == "file") ? output_path.mid(colon_id + 1) :
+                        protocol + "//" + get_ip_address() + ":" + output_path.mid(colon_id + 1);
+    }
+    else
+    {
+        overlay_path = "";
+    }
 
     state = std::make_unique<CVIONodeClosed>(*this);
 }
 
-CVKernel::CVIONode::CVIONode(QString input_path, QString overlay_path, int width, int height, double framespersecond,
+CVKernel::CVIONode::CVIONode(QString input_path, QString output_path,
+                             int width, int height, double framespersecond,
                              QMap<QString, QSharedPointer<CVNodeParams>>& pars)
     : QObject(NULL),
       video_path(input_path),
@@ -61,6 +73,11 @@ CVKernel::CVIONode::CVIONode(QString input_path, QString overlay_path, int width
       params(pars)
 {
     in_stream.open(video_path.toStdString());
+    if (not in_stream.isOpened())
+    {
+        qDebug() << "Video stream is not opened";
+        return;
+    }
 
     if (in_stream.get(CV_CAP_PROP_FPS) > 1.0)
         stopwatch.fps = in_stream.get(CV_CAP_PROP_FPS);
@@ -71,8 +88,17 @@ CVKernel::CVIONode::CVIONode(QString input_path, QString overlay_path, int width
     in_stream.set(CV_CAP_PROP_FRAME_HEIGHT, frame_height);
     in_stream.set(CV_CAP_PROP_FPS, stopwatch.fps);
 
-    if (not overlay_path.isEmpty())
-        out_stream.open(overlay_path.toStdString(), 1482049860, stopwatch.fps, cv::Size(frame_width, frame_height));
+    int colon_id = output_path.indexOf(":");
+    if (not output_path.isEmpty() and colon_id > 0)
+    {
+        QString protocol = output_path.left(colon_id);
+        overlay_path = (protocol == "file") ? output_path.mid(colon_id + 1) :
+                        protocol + "://" + get_ip_address() + ":" + output_path.mid(colon_id + 1);
+    }
+    else
+    {
+        overlay_path = "";
+    }
 
     state = std::make_unique<CVIONodeClosed>(*this);
 }
@@ -81,9 +107,11 @@ CVKernel::CVIONode::~CVIONode()
 {
     if (in_stream.isOpened()) {
         in_stream.release();
+        qDebug() << "in_stream.release();";
     }
     if (out_stream.isOpened()) {
         out_stream.release();
+        qDebug() << "out_stream.release();";
     }
 }
 
@@ -146,6 +174,10 @@ void CVKernel::CVIONode::on_run()
         state.reset(new CVIONodeClosed(*this));
         return;
     }
+    if ((not overlay_path.isEmpty()) and (not out_stream.isOpened()))
+    {
+        out_stream.open(overlay_path.toStdString(), 1482049860, stopwatch.fps, frame.size());
+    }
 
     video_timings[frame_number] = {stopwatch.now(), nodes_number};
     QSharedPointer<CVProcessData> process_data(
@@ -159,6 +191,7 @@ void CVKernel::CVIONode::on_run()
     usleep(stopwatch.time());
     out_stream << video_data[video_path].overlay;
     emit send_metadata(CVJsonController::pack_to_json_ascii<CVProcessData>(*process_data.data()));
+    frame_number++;
 }
 
 void CVKernel::CVIONode::on_stopped()
@@ -166,6 +199,11 @@ void CVKernel::CVIONode::on_stopped()
     for (auto hist_item : history)
     {
         hist_item->clear_history();
+    }
+
+    if ((not overlay_path.isEmpty()) and (out_stream.isOpened()))
+    {
+        out_stream.release();
     }
 
     guard_lock.lock();
@@ -190,41 +228,44 @@ void CVKernel::CVIONode::udp_closed() {
 }
 
 CVKernel::CVProcessingNode::CVProcessingNode() :
-    QObject(nullptr), aver_time_mutex(new QMutex) {
+    QObject(nullptr)
+{
     fill_buf = false;
     frame_counter = 0;
     average_time = 0.;
     frame_processed = 0;
 }
 
-void CVKernel::CVProcessingNode::calcAverageTime() {
-    aver_time_mutex->lock();
-    average_time = 0.;
+void CVKernel::CVProcessingNode::calcAverageTime()
+{
+    double acc_time = 0.;
 
     if (fill_buf)
     {
         frame_counter %= SIZE_BUF;
         for(int i = 0; i < SIZE_BUF; ++i)
         {
-            average_time += timings[i] / SIZE_BUF;
+            acc_time += timings[i];
         }
+        average_time = acc_time / SIZE_BUF;
     }
     else
     {
         for(int i = 0; i < frame_counter; ++i)
         {
-            average_time += timings[i] / frame_counter;
+            acc_time += timings[i];
         }
+        average_time = acc_time / frame_counter;
         if (frame_counter == SIZE_BUF)
         {
             fill_buf = true;
             frame_counter %= SIZE_BUF;
         }
     }
-    aver_time_mutex->unlock();
 }
 
-void CVKernel::CVProcessingNode::process(QSharedPointer<CVProcessData> process_data, CVIONode *stream_node) {
+void CVKernel::CVProcessingNode::process(QSharedPointer<CVProcessData> process_data, CVIONode* stream_node)
+{
     clock_t start = clock();
 
     QSharedPointer<CVNodeData> node_data = compute(process_data);
@@ -248,10 +289,7 @@ void CVKernel::CVProcessingNode::process(QSharedPointer<CVProcessData> process_d
     emit nextNode(process_data, stream_node);
 }
 
-double CVKernel::CVProcessingNode::averageTime()
+double CVKernel::CVProcessingNode::get_average_time()
 {
-    aver_time_mutex->lock();
-    double result = average_time;
-    aver_time_mutex->unlock();
-    return result;
+    return average_time;
 }

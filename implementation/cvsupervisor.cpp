@@ -12,7 +12,7 @@ CVKernel::CVConnectorState* CVKernel::CVSupervisorFactory::set_state(CVConnector
 {
     CVSupervisor& sup = static_cast<CVSupervisor&>(connector);
 
-    if (&sup == nullptr)
+    if (sup.supervision_port == 0)
     {
         return new CVSupervisorClosed(sup);
     }
@@ -32,19 +32,17 @@ CVKernel::CVSupervisorStartup::CVSupervisorStartup(QList<QSharedPointer<CVClient
 }
 
 CVKernel::CVSupervisor::CVSupervisor(unsigned int id, CVProcessManager& pm, CVNetworkManager& nm, QTcpSocket& sock)
-    : CVConnector(id, *CVSupervisorFactory::instance(), pm, nm, sock)
+    : CVConnector(id, *CVSupervisorFactory::instance(), pm, nm, sock),
+      supervision_port(0)
 {
+    qDebug() << "added CVSupervisor id: " << id;
     state_changed();
-    send_buffer(CVJsonController::pack_to_json_ascii<CVSupervisorStartup>(CVSupervisorStartup(network_manager.get_clients())));
     updateSupInfoTimer = new QTimer(&sock);
+    tcp_supervision = new QTcpSocket(&sock);
     QObject::connect(updateSupInfoTimer, SIGNAL(timeout()), this, SLOT(send_supervision_info()));
     for (QSharedPointer<CVClient> client : network_manager.get_clients())
     {
         QObject::connect(client.data(), SIGNAL(notify_supervisors(CVConnector&,CVConnectorState&)), this, SLOT(send_connector_state_change(CVConnector&,CVConnectorState&)));
-    }
-    for (QSharedPointer<CVSupervisor> sup : network_manager.get_supervisors())
-    {
-        QObject::connect(sup.data(), SIGNAL(notify_supervisors(CVConnector&,CVConnectorState&)), this, SLOT(send_connector_state_change(CVConnector&,CVConnectorState&)));
     }
 }
 
@@ -54,10 +52,26 @@ CVKernel::CVSupervisor::~CVSupervisor()
     {
         QObject::disconnect(client.data(), SIGNAL(notify_supervisors(CVConnector&,CVConnectorState&)), this, SLOT(send_connector_state_change(CVConnector&,CVConnectorState&)));
     }
-    for (QSharedPointer<CVSupervisor> sup : network_manager.get_supervisors())
-    {
-        QObject::disconnect(sup.data(), SIGNAL(notify_supervisors(CVConnector&,CVConnectorState&)), this, SLOT(send_connector_state_change(CVConnector&,CVConnectorState&)));
-    }
+    qDebug() << "deleted CVSupervisor id: " << id;
+}
+
+void CVKernel::CVSupervisor::init_supervision(QSharedPointer<CVSupervisionSettings> settings)
+{
+    supervision_port = settings->port;
+    update_timer_value = settings->update_timer_value;
+    tcp_supervision->connectToHost(tcp_state.localAddress(), supervision_port);
+    send_buffer(
+        CVJsonController::pack_to_json_ascii<CVSupervisorStartup>(
+            CVSupervisorStartup(network_manager.get_clients())
+        ),
+        *tcp_supervision
+    );
+}
+
+void CVKernel::CVSupervisor::run()
+{
+    updateSupInfoTimer->start(update_timer_value * 1000);
+    CVConnector::run();
 }
 
 void CVKernel::CVSupervisor::stop()
@@ -66,15 +80,24 @@ void CVKernel::CVSupervisor::stop()
     CVConnector::stop();
 }
 
-void CVKernel::CVSupervisor::run()
-{
-    updateSupInfoTimer->start(updateTimerValue);
-    CVConnector::run();
-}
-
 void CVKernel::CVSupervisor::close()
 {
-//    tcp_socket.close();
+    send_buffer(QByteArray("{}"), *tcp_supervision);
+    state_changed();
+}
+
+void CVKernel::CVSupervisorClosed::handleIncommingMessage(QByteArray &buffer)
+{
+    QSharedPointer<CVSupervisionSettings> sup_settings = CVJsonController::get_from_json_buffer<CVSupervisionSettings>(buffer);
+    if (sup_settings->port != 0)
+    {
+        command.reset(new CVInitSupervisionCommand(static_cast<CVSupervisor&>(connector), sup_settings));
+    }
+}
+
+void CVKernel::CVInitSupervisionCommand::execute()
+{
+    supervisor.init_supervision(settings);
 }
 
 void CVKernel::CVSupervisor::send_supervision_info()
@@ -86,13 +109,14 @@ void CVKernel::CVSupervisor::send_supervision_info()
                 network_manager.get_clients().size(),
                 process_manager.get_average_timings()
             )
-        )
+        ),
+        *tcp_supervision
     );
 }
 
 void CVKernel::CVSupervisor::send_connector_state_change(CVConnectorState& state)
 {
-    send_buffer(CVJsonController::pack_to_json_ascii<CVConnectorState>(&state));
+    send_buffer(CVJsonController::pack_to_json_ascii<CVConnectorState>(&state), *tcp_supervision);
 }
 
 CVKernel::CVSupervisionInfo::CVSupervisionInfo(CVSupervisionInfo& prev_info, int clients, QMap<QString, double> timings)
@@ -101,36 +125,4 @@ CVKernel::CVSupervisionInfo::CVSupervisionInfo(CVSupervisionInfo& prev_info, int
     used_process_nodes = timings.size();
     average_timings = timings;
     prev_info = *this;
-}
-
-
-QJsonObject CVKernel::CVSupervisorStartup::pack_to_json() {
-    QJsonObject clients_json;
-    QJsonArray clients_json_array;
-    std::unique_ptr<CVConnectorState> state;
-    for (QSharedPointer<CVClient>& client : client_list)
-    {
-        QJsonObject client_json;
-        state.reset(CVClientFactory::instance()->set_state(*client));
-        client_json["id"] = (int) client->get_id();
-        client_json["state"] = (int) state->state;
-        client_json["used_proc_nodes"] = client->get_proc_nodes_number();
-        client_json["overlay_path"] = client->get_overlay_path();
-        clients_json_array.push_back(client_json);
-    }
-    clients_json["clients"] = clients_json_array;
-    return clients_json;
-}
-
-QJsonObject CVKernel::CVSupervisionInfo::pack_to_json() {
-    QJsonObject sup_json;
-    sup_json["connected_clients"] = connected_clients;
-    sup_json["used_process_nodes"] = used_process_nodes;
-    QJsonObject timings_json;
-    for (auto iter = average_timings.begin(); iter != average_timings.end(); iter++)
-    {
-        timings_json[iter.key()] = iter.value();
-    }
-    sup_json["average_timings"] = timings_json;
-    return sup_json;
 }

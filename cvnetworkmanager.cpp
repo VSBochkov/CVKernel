@@ -9,8 +9,8 @@
 #include <QObject>
 
 
-CVKernel::CVNetworkManager::CVNetworkManager(CVNetworkSettings& settings, CVProcessManager& pm) :
-    QObject(NULL), process_manager(pm)
+CVKernel::CVNetworkManager::CVNetworkManager(QObject* parent, CVNetworkSettings& settings, CVProcessManager& pm) :
+    QObject(parent), process_manager(pm)
 {
     receiver = new CVInputProcessor;
     setup_tcp_server(settings);
@@ -33,7 +33,7 @@ void CVKernel::CVNetworkManager::add_tcp_connection() {
         return;
 
     connect(new_connection, SIGNAL(readyRead()), this, SLOT(init_new_conector()));
-    connect(new_connection, SIGNAL(disconnected()), this, SLOT(delete_conector()));
+    connect(new_connection, SIGNAL(disconnected()), this, SLOT(delete_connector()));
 }
 
 void CVKernel::CVNetworkManager::init_new_conector()

@@ -8,25 +8,25 @@
 CVKernel::CVConnector::CVConnector(unsigned index, CVConnectorFactory& f, CVProcessManager& pm, CVNetworkManager& nm, QTcpSocket& sock)
     : QObject(&sock),
       id(index),
-      tcp_socket(sock),
       factory(f),
       running(false),
+      tcp_state(sock),
       network_manager(nm),
       process_manager(pm)
 {
-    disconnect(&sock, SIGNAL(readyRead()), &network_manager, SLOT(recv_data()));
+    disconnect(&sock, SIGNAL(readyRead()), &network_manager, SLOT(init_new_conector()));
     connect(&sock, SIGNAL(readyRead()), this, SLOT(process_incoming_message()));
 }
 
 CVKernel::CVConnector::~CVConnector()
 {
-    disconnect(&tcp_socket, SIGNAL(readyRead()), this, SLOT(recv_data()));
-    connect(&tcp_socket, SIGNAL(readyRead()), &network_manager, SLOT(recv_data()));
+    disconnect(&tcp_state, SIGNAL(readyRead()), this, SLOT(process_incoming_message()));
+    connect(&tcp_state, SIGNAL(readyRead()), &network_manager, SLOT(init_new_conector()));
 }
 
 void CVKernel::CVConnector::process_incoming_message()
 {
-    if (not receiver.receive_message(tcp_socket))
+    if (not receiver.receive_message(tcp_state))
         return;
 
     state->handleIncommingMessage(receiver.buffer);
@@ -34,13 +34,19 @@ void CVKernel::CVConnector::process_incoming_message()
         state->command->execute();
 
     receiver.clear_buffer();
+    state_changed();
 }
 
 void CVKernel::CVConnector::state_changed()
 {
     state.reset(factory.set_state(*this));
-    send_buffer(CVJsonController::pack_to_json_ascii<CVConnectorState>(state.get()));
+    send_buffer(CVJsonController::pack_to_json_ascii<CVConnectorState>(state.get()), tcp_state);
     emit notify_supervisors(*state);
+}
+
+QHostAddress CVKernel::CVConnector::get_ip_address()
+{
+    return tcp_state.localAddress();
 }
 
 void CVKernel::CVConnectorRun::handleIncommingMessage(QByteArray &buffer)
@@ -86,13 +92,11 @@ void CVKernel::CVCloseCommand::execute()
 void CVKernel::CVConnector::run()
 {
     running = true;
-    state_changed();
 }
 
 void CVKernel::CVConnector::stop()
 {
     running = false;
-    state_changed();
 }
 
 unsigned CVKernel::CVConnector::get_id()
@@ -100,7 +104,7 @@ unsigned CVKernel::CVConnector::get_id()
     return id;
 }
 
-void CVKernel::CVConnector::send_buffer(QByteArray byte_arr)
+void CVKernel::CVConnector::send_buffer(QByteArray byte_arr, QTcpSocket& sock)
 {
     quint64 arr_size = (quint64) byte_arr.size();
     char size[sizeof(quint64)];
@@ -111,7 +115,8 @@ void CVKernel::CVConnector::send_buffer(QByteArray byte_arr)
     quint64 bytes_to_send = packet.size();
     quint64 bytes_sent = 0;
     while (bytes_sent < bytes_to_send) {
-        qint64 bytes = tcp_socket.write(packet);
+        qint64 bytes = sock.write(packet);
+        sock.waitForBytesWritten(-1);
         packet.mid((int) bytes);
         bytes_sent += bytes;
     }

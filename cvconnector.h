@@ -83,7 +83,7 @@ namespace CVKernel {
     struct CVConnectorRun : CVConnectorState
     {
         CVConnectorRun(CVConnector& conn)
-            : CVConnectorState(CVConnectorState::ready, conn)
+            : CVConnectorState(CVConnectorState::run, conn)
         {}
 
         virtual void handleIncommingMessage(QByteArray& buffer) override;
@@ -149,11 +149,12 @@ namespace CVKernel {
         virtual void stop();
         virtual void close() = 0;
 
-        void send_buffer(QByteArray byte_arr);
+        void send_buffer(QByteArray byte_arr, QTcpSocket& sock);
 
         void state_changed();
 
         unsigned get_id();
+        QHostAddress get_ip_address();
 
     signals:
         void notify_supervisors(CVConnectorState&);
@@ -161,15 +162,17 @@ namespace CVKernel {
     public slots:
         void process_incoming_message();
 
-    private:
+    protected:
         unsigned id;
-        QTcpSocket& tcp_socket;
+
+    private:
         CVInputProcessor receiver;
         CVConnectorFactory& factory;
         std::unique_ptr<CVConnectorState> state;
 
     protected:
         bool running;
+        QTcpSocket& tcp_state;
         CVNetworkManager& network_manager;
         CVProcessManager& process_manager;
 

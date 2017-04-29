@@ -117,7 +117,8 @@ namespace CVKernel {
         double fps;
     };
 
-    class CVIONode : public QObject {
+    class CVIONode : public QObject
+    {
         Q_OBJECT
     public:
         explicit CVIONode(QString input_path, QString overlay_path, int frame_width, int frame_height, double fps,
@@ -138,7 +139,7 @@ namespace CVKernel {
         void on_closed();
 
     signals:
-        void nextNode(QSharedPointer<CVProcessData> process_data, CVIONode *stream_node);
+        void nextNode(QSharedPointer<CVProcessData> process_data, CVIONode* stream_node);
         void send_metadata(QByteArray);
         void close_udp();
         void node_closed();
@@ -170,7 +171,8 @@ namespace CVKernel {
         int nodes_number;
     };
 
-    class CVProcessingNode : public QObject {
+    class CVProcessingNode : public QObject
+    {
         Q_OBJECT
     public:
         explicit CVProcessingNode();
@@ -178,17 +180,14 @@ namespace CVKernel {
 
         virtual QSharedPointer<CVNodeData> compute(QSharedPointer<CVProcessData> process_data) = 0;
 
-        double averageTime();
+        double get_average_time();
 
     signals:
-        void nextNode(QSharedPointer<CVProcessData> process_data, CVIONode *stream_node);
+        void nextNode(QSharedPointer<CVProcessData> process_data, CVIONode* stream_node);
         void nextStat();
 
     public slots:
-        virtual void process(QSharedPointer<CVProcessData> process_data, CVIONode *stream_node);
-
-    public:
-        QSharedPointer<QMutex> aver_time_mutex;
+        virtual void process(QSharedPointer<CVProcessData> process_data, CVIONode* stream_node);
 
     private:
         void calcAverageTime();

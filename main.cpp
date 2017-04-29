@@ -11,5 +11,6 @@ int main(int argc, char *argv[])
     QList<CVKernel::CVNodeFactory*> factories = { new FireDetectionFactory };
     CVKernel::CVFactoryController::get_instance().set_factories(factories);
     new CVKernel::CVApplication("../cv_kernel_settings.json");
+
     return app.exec();
 }

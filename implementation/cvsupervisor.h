@@ -15,11 +15,6 @@ namespace CVKernel {
     struct CVProcessForest;
     struct CVProcessManager;
     struct CVNetworkManager;
-    /*struct CVConnectorFactory;
-    struct CVConnectorCommand;
-    struct CVConnectorClosed;
-    struct CVConnectorState;
-    struct CVConnector;*/
     struct CVClient;
     struct CVIONode;
 
@@ -51,20 +46,30 @@ namespace CVKernel {
         QJsonObject pack_to_json();
     };
 
+    struct CVSupervisionSettings
+    {
+        CVSupervisionSettings(QJsonObject& json_obj);
+        int port;
+        int update_timer_value;
+    };
+
     class CVSupervisor : public CVConnector {
     Q_OBJECT
     public:
         explicit CVSupervisor(unsigned index, CVProcessManager& process_manager, CVNetworkManager& network_manager, QTcpSocket& sock);
         virtual ~CVSupervisor();
 
+        void init_supervision(QSharedPointer<CVSupervisionSettings> settings);
         virtual void run() override;
         virtual void stop() override;
         virtual void close() override;
 
     public:
         QTimer* updateSupInfoTimer;
+        QTcpSocket* tcp_supervision;
         CVSupervisionInfo info;
-        const unsigned updateTimerValue = 20;
+        int supervision_port;
+        int update_timer_value;
 
     private:
         void init_update_timer();
@@ -81,7 +86,20 @@ namespace CVKernel {
             : CVConnectorClosed(sup)
         {}
 
-        virtual void handleIncommingMessage(QByteArray&) {}
+        virtual void handleIncommingMessage(QByteArray&) override;
+    };
+
+    struct CVInitSupervisionCommand : public CVConnectorCommand
+    {
+        CVInitSupervisionCommand(CVSupervisor& sup, QSharedPointer<CVSupervisionSettings> params)
+            : supervisor(sup),
+              settings(params)
+        {}
+
+        virtual void execute() override;
+
+        CVSupervisor& supervisor;
+        QSharedPointer<CVSupervisionSettings> settings;
     };
 
     struct CVSupervisorStartup {

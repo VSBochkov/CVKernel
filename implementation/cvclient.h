@@ -17,11 +17,6 @@ namespace CVKernel {
     struct CVProcessForest;
     struct CVProcessManager;
     struct CVNetworkManager;
-    /*struct CVConnectorFactory;
-    struct CVConnectorCommand;
-    struct CVConnectorClosed;
-    struct CVConnectorState;
-    struct CVConnector;*/
 
 
     struct CVClientFactory : public CVConnectorFactory

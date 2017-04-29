@@ -2,22 +2,22 @@
 #include "cvjsoncontroller.h"
 
 #include <QThread>
+#include <QNetworkInterface>
 #include <array>
 #include <stdio.h>
 
-
-CVKernel::CVApplicationState::CVApplicationState(QString mac, bool st)
-    : mac_address(mac),
-      state(st)
+QString CVKernel::get_ip_address()
 {
-    const int buf_size = 16;
-    char buffer[buf_size];
-    FILE* pipe = popen("hostname -I", "r");
-    if (pipe and fgets(buffer, buf_size, pipe))
+    QString ip_address;
+    foreach (const QHostAddress &address, QNetworkInterface::allAddresses())
     {
-        ip_address = buffer;
-        pclose(pipe);
+        if (address.protocol() == QAbstractSocket::IPv4Protocol && address != QHostAddress(QHostAddress::LocalHost))
+        {
+            ip_address = address.toString();
+            break;
+        }
     }
+    return ip_address;
 }
 
 CVKernel::CVApplication::CVApplication(QString app_settings_json) : QObject(NULL)
@@ -25,28 +25,12 @@ CVKernel::CVApplication::CVApplication(QString app_settings_json) : QObject(NULL
     net_settings = CVJsonController::get_from_json_file<CVNetworkSettings>(app_settings_json);
 
     QThread *proc_manager_thread = new QThread(this);
-    process_manager = new CVProcessManager(this);
+    process_manager = new CVProcessManager;
     process_manager->moveToThread(proc_manager_thread);
-
-    network_manager = new CVNetworkManager(*net_settings, *process_manager);
-
-    timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), this, SLOT(send_self_to_broadcast()));
+    network_manager = new CVNetworkManager(this, *net_settings, *process_manager);
     proc_manager_thread->start();
 }
 
 CVKernel::CVApplication::~CVApplication()
 {
-    broadcaster->writeDatagram(
-        CVJsonController::pack_to_json_ascii<CVApplicationState>(CVApplicationState(net_settings->mac_address, false)),
-        QHostAddress::Broadcast, net_settings->udp_broadcast_port
-    );
-}
-
-void CVKernel::CVApplication::send_self_to_broadcast()
-{
-    broadcaster->writeDatagram(
-        CVJsonController::pack_to_json_ascii<CVApplicationState>(CVApplicationState(net_settings->mac_address, true)),
-        QHostAddress::Broadcast, net_settings->udp_broadcast_port
-    );
 }

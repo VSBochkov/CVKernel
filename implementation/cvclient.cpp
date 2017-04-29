@@ -29,6 +29,7 @@ CVKernel::CVConnectorState* CVKernel::CVClientFactory::set_state(CVConnector& co
 CVKernel::CVClient::CVClient(unsigned index, CVProcessManager& pm, CVNetworkManager& nm, QTcpSocket& tcp)
     : CVConnector(index, *CVClientFactory::instance(), pm, nm, tcp)
 {
+    video_io = nullptr;
     meta_udp_client.reset(new QUdpSocket);
 
     for (QSharedPointer<CVSupervisor> sup : network_manager.get_supervisors())
@@ -37,6 +38,7 @@ CVKernel::CVClient::CVClient(unsigned index, CVProcessManager& pm, CVNetworkMana
     }
 
     state_changed();
+    qDebug() << "added CVClient id: " << id;
 }
 
 CVKernel::CVClient::~CVClient()
@@ -45,6 +47,7 @@ CVKernel::CVClient::~CVClient()
     {
         QObject::disconnect(this, SIGNAL(notify_supervisors(CVConnectorState&)), sup.data(), SLOT(send_connector_state_change(CVConnectorState&)));
     }
+    qDebug() << "deleted CVClient id: " << id;
 }
 
 QString CVKernel::CVClient::get_overlay_path()
@@ -60,6 +63,7 @@ int CVKernel::CVClient::get_proc_nodes_number()
 void CVKernel::CVClient::close()
 {
     video_io->close();
+    state_changed();
 }
 
 void CVKernel::CVClient::run()
@@ -77,21 +81,21 @@ void CVKernel::CVClient::stop()
 void CVKernel::CVClient::init_process_tree(QSharedPointer<CVProcessForest> proc_forest)
 {
     video_io = process_manager.add_new_stream(proc_forest);
-    meta_udp_client.reset(new QUdpSocket());
-    udp_address = QHostAddress(proc_forest->meta_udp_addr);
+    udp_address = proc_forest->meta_udp_addr;
     udp_port = proc_forest->meta_udp_port;
     connect(video_io, SIGNAL(node_closed()), this, SLOT(on_stream_closed()));
     connect(video_io, SIGNAL(send_metadata(QByteArray)), this, SLOT(send_datagramm(QByteArray)));
     connect(video_io, SIGNAL(close_udp()), this, SLOT(do_close_udp()));
-    state_changed();
 }
 
 void CVKernel::CVClient::on_stream_closed()
 {
-    video_io = nullptr;
+    running = false;
+    state_changed();
     disconnect(video_io, SIGNAL(node_closed()), this, SLOT(on_stream_closed()));
     disconnect(video_io, SIGNAL(send_metadata(QByteArray)), this, SLOT(send_datagramm(QByteArray)));
     disconnect(video_io, SIGNAL(close_udp()), this, SLOT(do_close_udp()));
+    video_io = nullptr;
     state_changed();
 }
 
@@ -118,16 +122,17 @@ void CVKernel::CVClient::send_datagramm(QByteArray byte_arr)
 
 void CVKernel::CVClient::do_close_udp()
 {
-    send_datagramm(QByteArray());
+    send_datagramm(QByteArray("{}"));
     video_io->udp_closed();
 }
 
 void CVKernel::CVClientClosed::handleIncommingMessage(QByteArray &buffer)
 {
     QSharedPointer<CVProcessForest> proc_forest = CVJsonController::get_from_json_buffer<CVProcessForest>(buffer);
+    proc_forest->meta_udp_addr = connector.get_ip_address();
     if (not proc_forest->proc_forest.empty())
     {
-        command = std::make_unique<CVInitProcTreeCommand>(static_cast<CVClient&>(connector), proc_forest);
+        command.reset(new CVInitProcTreeCommand(static_cast<CVClient&>(connector), proc_forest));
     }
 }
 
