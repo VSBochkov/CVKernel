@@ -136,6 +136,7 @@ CVKernel::CVIONode::~CVIONode()
         out_stream.release();
         qDebug() << "out_stream.release();";
     }
+    sleep(60);
 }
 
 void CVKernel::CVIONode::start()
