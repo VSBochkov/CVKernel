@@ -83,7 +83,16 @@ def create_udp_sock(udp_port):
 
 def create_tcp_sock(tcp_port):
     sock = socket.socket()
-    sock.bind(('', tcp_port))
+    sock_initialized = False
+    while not sock_initialized:
+        try:
+            sock.bind(('', tcp_port))
+        except socket.error:
+            print 'Address already in use: try to bind again over 10 seconds'
+            time.sleep(10)
+        else:
+            sock_initialized = True
+
     return sock
 
 

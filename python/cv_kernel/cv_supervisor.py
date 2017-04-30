@@ -35,8 +35,7 @@ class cv_supervisor(cv_connector):
         while True:
             packet = cv_network_controller.receive_packet(kernel_supervision_tcp_sock)
             if len(packet.keys()) == 0:
-                print 'exit from __supervision_process'
-                return
+                break
 
             if packet['type'] == cv_supervisor.client_status:
                 self.__client_status_changed(packet)
@@ -44,14 +43,22 @@ class cv_supervisor(cv_connector):
                 self.__on_startup(packet)
             elif packet['type'] == cv_supervisor.supervision_info:
                 cv_supervisor.__display_supervision_info(packet)
+        kernel_supervision_tcp_sock.close()
+        print 'exit from __supervision_process'
 
     def __display_overlay(self, client_id):
         overlay_path = self.display_processes[client_id]['overlay']
+
         cap = cv.VideoCapture(overlay_path)
+        while not cap.isOpened():
+            cap = cv.VideoCapture(overlay_path)
+
         fps = cap.get(cv.CAP_PROP_FPS)
+        while fps > 100:
+            fps /= 10.
+        size = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
         writer = cv.VideoWriter('out' + time.strftime("%dd%mm%Yy_%H:%M:%S_") + str(client_id) + '.avi',
-                                1482049860, fps, (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)),
-                                int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))))
+                                1482049860, fps, size)
         while True:
             ret, frame = cap.read()
             if not ret:

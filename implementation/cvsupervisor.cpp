@@ -35,22 +35,22 @@ CVKernel::CVSupervisor::CVSupervisor(unsigned int id, CVProcessManager& pm, CVNe
     : CVConnector(id, *CVSupervisorFactory::instance(), pm, nm, sock),
       supervision_port(0)
 {
-    qDebug() << "added CVSupervisor id: " << id;
     state_changed();
     updateSupInfoTimer = new QTimer(&sock);
     tcp_supervision = new QTcpSocket(&sock);
     QObject::connect(updateSupInfoTimer, SIGNAL(timeout()), this, SLOT(send_supervision_info()));
     for (QSharedPointer<CVClient> client : network_manager.get_clients())
     {
-        QObject::connect(client.data(), SIGNAL(notify_supervisors(CVConnector&,CVConnectorState&)), this, SLOT(send_connector_state_change(CVConnector&,CVConnectorState&)));
+        connect(client.data(), SIGNAL(notify_supervisors(CVConnectorState&)), this, SLOT(send_connector_state_change(CVConnectorState&)));
     }
+    qDebug() << "added CVSupervisor id: " << id;
 }
 
 CVKernel::CVSupervisor::~CVSupervisor()
 {
     for (QSharedPointer<CVClient> client : network_manager.get_clients())
     {
-        QObject::disconnect(client.data(), SIGNAL(notify_supervisors(CVConnector&,CVConnectorState&)), this, SLOT(send_connector_state_change(CVConnector&,CVConnectorState&)));
+        disconnect(client.data(), SIGNAL(notify_supervisors(CVConnectorState&)), this, SLOT(send_connector_state_change(CVConnectorState&)));
     }
     qDebug() << "deleted CVSupervisor id: " << id;
 }
