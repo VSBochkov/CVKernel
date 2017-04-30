@@ -46,11 +46,12 @@ class Test:
         from cv_kernel import cv_network_controller, cv_client
 
         self.test_queue = multiprocessing.Queue()
-        self.test_proc = multiprocessing.Process(target=self.__test)
         self.prev_state = multiprocessing.Value('i', cv_connector.state_closed)
+        self.test_proc = multiprocessing.Process(target=self.__test)
 
+        self.network_controller = cv_network_controller(None)
         self.client = cv_client(
-            network_controller=cv_network_controller(),
+            network_controller=self.network_controller,
             cvkernel_json_path='/home/vbochkov/workspace/development/CVKernel/cv_kernel_settings.json',
             run_state_handler=self.test_on_run,
             ready_state_handler=self.test_on_ready,
@@ -93,12 +94,13 @@ class Test:
                 print 'meta: {}'.format(packet['meta'])
 
             self.prev_state = packet['type']
+        self.network_controller.stop()
         print 'exit from __test.'
 
 
 def test():
     print '====cv_client_test===='
-    Test()
+    test_app = Test()
 
 if __name__ == '__main__':
     test()

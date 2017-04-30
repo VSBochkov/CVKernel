@@ -117,8 +117,9 @@ class Test:
         self.test_proc = multiprocessing.Process(target=self.__test)
         self.prev_state = multiprocessing.Value('i', cv_connector.state_closed)
 
+        self.network_controller = cv_network_controller(None)
         self.supervisor = cv_supervisor(
-            network_controller=cv_network_controller(),
+            network_controller=self.network_controller,
             cvkernel_json_path='/home/vbochkov/workspace/development/CVKernel/cv_kernel_settings.json',
             cvsupervisor_json_path='/home/vbochkov/workspace/development/FireRobotDriver/supervision.json',
             run_state_handler=self.test_on_run,
@@ -158,6 +159,7 @@ class Test:
                 print 'supervision is run'
 
             self.prev_state = packet['type']
+        self.network_controller.stop()
         print 'exit from __test.'
 
 

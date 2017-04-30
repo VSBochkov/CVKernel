@@ -25,13 +25,15 @@ class cv_connector(object):
         self.connector_type = connector_type
         self.connector_settings = connector_settings
         self.network_controller = network_controller
+        self.network_controller.set_cv_iot_mac_found_handler(self.connect_to_cvkernel)
         self.state_mutex = multiprocessing.RLock()
         self.state_cv = multiprocessing.Condition(self.state_mutex)
         self.rest_run = multiprocessing.Value('b', 0)
         self.tcp_queue = multiprocessing.Queue()
         self.rest = multiprocessing.Process(target=self.__state_machine)
         self.rest.start()
-        self.network_controller.add_mac_handler(self.cv_kernel_settings['mac_address'], self.connect_to_cvkernel)
+        self.network_controller.add_mac_handler(self.cv_kernel_settings['mac_address'],
+                                                cv_network_controller.cv_iot_type)
 
     def run(self):
         rest = {'command': cv_connector.com_run}
@@ -45,7 +47,7 @@ class cv_connector(object):
         rest = {'command': cv_connector.com_close}
         self.tcp_queue.put(rest)
 
-    def connect_to_cvkernel(self, tcp_address):
+    def connect_to_cvkernel(self, mac, tcp_address):
         self.tcp_queue.put(tcp_address)
         self.tcp_queue.put(self.connector_type)
         self.tcp_queue.put(self.connector_settings)
@@ -90,6 +92,7 @@ class cv_connector(object):
             except Queue.Empty:
                 pass
             else:
+                print 'got packet {}'.format(packet)
                 cv_network_controller.send_packet(self.state_tcp, packet)
             finally:
                 response = cv_network_controller.async_receive_packet(self.state_tcp)
@@ -103,5 +106,6 @@ class cv_connector(object):
                         if closed_by_originator():
                             self.state_tcp.close()
                             rest_run = 0
-                            print 'exit from __state_machine'
                         prev_connection_state = connection_state
+
+        print 'exit from __state_machine'

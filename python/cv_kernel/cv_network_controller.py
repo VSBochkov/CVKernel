@@ -2,37 +2,50 @@ import socket
 import json
 import time
 import multiprocessing
+import Queue
 import os
+
+cv_iot_type = 0x7f
+iot_type = 0x6f
 
 
 class cv_network_controller:
     sizeof_uint64 = 8
     localhost = '127.0.0.1'
+    add_mac = 1
+    stop_scanner = 2
 
-    def __init__(self):
-        self.scanner_proc = multiprocessing.Process(target=self.__scanner)
+    def __init__(self, iot_mac_found_handler):
+        self.cv_iot_mac_found_handler = None
+        self.iot_mac_found_handler = iot_mac_found_handler
         self.scanner_mtx = multiprocessing.RLock()
-        self.scanner_run = multiprocessing.Value('b', 0)
-        self.mac_found_handlers = {}
-        self.mac_ip_map = {}
+        self.scanner_queue = multiprocessing.Queue()
+        self.scanner_cv = multiprocessing.Condition(self.scanner_mtx)
+        self.scanner_proc = multiprocessing.Process(target=self.__scanner)
+        self.scanner_proc.start()
 
-    def add_mac_handler(self, mac_address, handler):
+    def set_cv_iot_mac_found_handler(self, cv_iot_mac_found_handler):
+        self.cv_iot_mac_found_handler = cv_iot_mac_found_handler
+
+    def stop(self):
+        self.scanner_queue.put({'type': cv_network_controller.stop_scanner})
+        print 'net_controller: put stop command'
+        self.scanner_proc.join()
+
+    def add_mac_handler(self, mac_address, handler_type):
         with self.scanner_mtx:
             if is_local_mac_address(mac_address):
-                handler(cv_network_controller.localhost)
+                if handler_type == cv_iot_type:
+                    self.cv_iot_mac_found_handler(mac_address, cv_network_controller.localhost)
+                elif handler_type == iot_type:
+                    self.iot_mac_found_handler(mac_address, cv_network_controller.localhost)
                 print 'is_local_mac'
             else:
-                self.mac_ip_map[mac_address] = handler
-            if len(self.mac_ip_map.keys()) == 1:
-                self.scanner_run = 1
-                self.scanner_proc.run()
-
-    def del_mac_handler(self, mac_address):
-        with self.scanner_mtx:
-            self.mac_ip_map.pop(mac_address)
-            if len(self.mac_ip_map.keys()) == 0 and self.scanner_proc.is_alive():
-                    self.scanner_run = 0
-                    self.scanner_proc.join()
+                self.scanner_queue.put({
+                    'type': cv_network_controller.add_mac,
+                    'mac_address': mac_address,
+                    'handler_type': handler_type
+                })
 
     def __update_mac_ip_map(self):
         pipe = os.popen('arp')
@@ -47,17 +60,30 @@ class cv_network_controller:
         pipe.close()
 
     def __scanner(self):
-        while True:
-            with self.scanner_mtx:
-                if self.scanner_run == 0:
-                    return
+        self.mac_found_handlers = {}
+        self.mac_ip_map = {}
 
-                time.sleep(10)
+        while True:
+            try:
+                command = self.scanner_queue.get(timeout=5)
+            except Queue.Empty:
+                pass
+            else:
+                if command['type'] == cv_network_controller.stop_scanner:
+                    print 'exit from __scanner'
+                    return
+                elif command['type'] == cv_network_controller.add_mac:
+                    self.mac_found_handlers[command['mac_address']] = command['handler']
+            finally:
                 self.__update_mac_ip_map()
                 for mac in self.mac_found_handlers:
                     if mac in self.mac_ip_map:
-                        self.mac_found_handlers[mac](self.mac_ip_map[mac])
-                        self.del_mac_handler(mac)
+                        if self.mac_found_handlers[mac]['handler_type'] == cv_network_controller.cv_iot_type:
+                            self.cv_iot_mac_found_handler(mac, self.mac_ip_map[mac])
+                        else:
+                            self.iot_mac_found_handler(mac, self.mac_ip_map[mac])
+                        self.mac_found_handlers.pop(mac)
+
 
 
 def is_local_mac_address(target_mac):
