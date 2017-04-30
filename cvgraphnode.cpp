@@ -37,22 +37,37 @@ CVKernel::CVIONode::CVIONode(int device_id, QString output_path,
       params(pars)
 {
     in_stream.open(device_id);
+    if (not in_stream.isOpened())
+    {
+        qDebug() << "Video stream is not opened";
+        return;
+    }
 
     if (in_stream.get(CV_CAP_PROP_FPS) > 1.0)
         stopwatch.fps = in_stream.get(CV_CAP_PROP_FPS);
     else
         stopwatch.fps = framespersecond;
 
-    in_stream.set(CV_CAP_PROP_FRAME_WIDTH, frame_width);
-    in_stream.set(CV_CAP_PROP_FRAME_HEIGHT, frame_height);
+    qDebug() << "USB cam: resolution: [" << (int) in_stream.get(CV_CAP_PROP_FRAME_WIDTH) << ", "
+             << (int) in_stream.get(CV_CAP_PROP_FRAME_HEIGHT) << "] fps = " << in_stream.get(CV_CAP_PROP_FPS);
+
+    qDebug() << "Setup: resolution: [" << width << ", " << height << "] fps = " << stopwatch.fps;
+
+    in_stream.set(CV_CAP_PROP_FRAME_WIDTH, width);
+    in_stream.set(CV_CAP_PROP_FRAME_HEIGHT, height);
     in_stream.set(CV_CAP_PROP_FPS, stopwatch.fps);
+
+    frame_width = (int) in_stream.get(CV_CAP_PROP_FRAME_WIDTH);
+    frame_height = (int) in_stream.get(CV_CAP_PROP_FRAME_HEIGHT);
+
+    qDebug() << "Calculate: resolution: [" << frame_width << ", " << frame_height << "] fps = " << in_stream.get(CV_CAP_PROP_FPS);
 
     int colon_id = output_path.indexOf(":");
     if (not output_path.isEmpty() and colon_id > 0)
     {
         QString protocol = output_path.left(colon_id);
         overlay_path = (protocol == "file") ? output_path.mid(colon_id + 1) :
-                        protocol + "//" + get_ip_address() + ":" + output_path.mid(colon_id + 1);
+                        protocol + "://" + get_ip_address() + ":" + output_path.mid(colon_id + 1);
     }
     else
     {
@@ -84,9 +99,17 @@ CVKernel::CVIONode::CVIONode(QString input_path, QString output_path,
     else
         stopwatch.fps = framespersecond;
 
-    in_stream.set(CV_CAP_PROP_FRAME_WIDTH, frame_width);
-    in_stream.set(CV_CAP_PROP_FRAME_HEIGHT, frame_height);
+    qDebug() << "Video: resolution: [" << (int) in_stream.get(CV_CAP_PROP_FRAME_WIDTH) << ", "
+             << (int) in_stream.get(CV_CAP_PROP_FRAME_HEIGHT) << "] fps = " << in_stream.get(CV_CAP_PROP_FPS);
+
+    in_stream.set(CV_CAP_PROP_FRAME_WIDTH, width);
+    in_stream.set(CV_CAP_PROP_FRAME_HEIGHT, height);
     in_stream.set(CV_CAP_PROP_FPS, stopwatch.fps);
+
+    frame_width = (int) in_stream.get(CV_CAP_PROP_FRAME_WIDTH);
+    frame_height = (int) in_stream.get(CV_CAP_PROP_FRAME_HEIGHT);
+
+    qDebug() << "Calculate: resolution: [" << frame_width << ", " << frame_height << "] fps = " << in_stream.get(CV_CAP_PROP_FPS);
 
     int colon_id = output_path.indexOf(":");
     if (not output_path.isEmpty() and colon_id > 0)
