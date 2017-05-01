@@ -5,7 +5,7 @@ import time
 import cv2 as cv
 
 from cv_kernel import cv_connector
-from cv_kernel import cv_network_controller
+from cv_kernel.cv_network_controller import *
 
 
 class cv_supervisor(cv_connector):

@@ -2,7 +2,7 @@ import json
 import multiprocessing
 import Queue
 
-from cv_kernel import cv_network_controller
+from cv_kernel.cv_network_controller import *
 
 
 class cv_connector(object):
@@ -32,8 +32,7 @@ class cv_connector(object):
         self.tcp_queue = multiprocessing.Queue()
         self.rest = multiprocessing.Process(target=self.__state_machine)
         self.rest.start()
-        self.network_controller.add_mac_handler(self.cv_kernel_settings['mac_address'],
-                                                cv_network_controller.cv_iot_type)
+        self.network_controller.add_cvkernel_mac_handler(self.cv_kernel_settings['mac_address'])
 
     def run(self):
         rest = {'command': cv_connector.com_run}

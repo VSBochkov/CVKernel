@@ -2,7 +2,7 @@ import json
 import multiprocessing
 
 from cv_kernel import cv_connector
-from cv_kernel import cv_network_controller
+from cv_kernel.cv_network_controller import *
 
 
 class cv_client(cv_connector):
