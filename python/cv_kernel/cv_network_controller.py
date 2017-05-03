@@ -4,6 +4,8 @@ import time
 import multiprocessing
 import Queue
 import os
+import xml.etree.cElementTree as ET
+import subprocess
 
 
 class cv_network_controller:
@@ -55,16 +57,21 @@ class cv_network_controller:
                 })
 
     def __update_mac_ip_map(self):
-        pipe = os.popen('arp')
-        out = pipe.readlines()
-        out = out[1:]
         self.mac_ip_map = {}
-        for line in out:
-            line = line[:-1]
-            strings = line.split(' ')
-            strings = [string for string in strings if string != '']
-            self.mac_ip_map[strings[2]] = strings[0]
-        pipe.close()
+        xml_file = 'nmap.xml'
+        subprocess.call(['nmap', '-oX', xml_file, '-sn', '192.168.59.0/24'])
+        tree = ET.parse(xml_file)
+        os.remove(xml_file)
+        root = tree.getroot()
+        hosts = [element for element in root if element.tag == 'host']
+        for host in hosts:
+            ip_address = ''
+            addresses = [node.attrib for node in host if node.tag == 'address']
+            for address in addresses:
+                if address['addrtype'] == 'ipv4':
+                    ip_address = address['addr']
+                elif address['addrtype'] == 'mac':
+                    self.mac_ip_map[ip_address] = address['addr']
 
     def __scanner(self):
         self.mac_found_handlers = {}
@@ -82,7 +89,8 @@ class cv_network_controller:
                 elif command['type'] == cv_network_controller.add_mac:
                     self.mac_found_handlers[command['mac_address']] = command['handler_type']
             finally:
-                self.__update_mac_ip_map()
+                if len(self.mac_found_handlers.keys()) > 0:
+                    self.__update_mac_ip_map()
                 for mac in self.mac_found_handlers.keys():
                     if mac in self.mac_ip_map:
                         if self.mac_found_handlers[mac] == cv_network_controller.cv_iot_type:
