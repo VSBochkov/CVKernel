@@ -70,11 +70,9 @@ namespace CVKernel {
         double  fps;
     };
 
-    class CVProcessManager : public QObject {
-        Q_OBJECT
+    class CVProcessManager
+    {
     public:
-        explicit CVProcessManager(QObject* parent = 0);
-        virtual ~CVProcessManager();
         QMap<QString, double> get_average_timings();
 
         void purpose_processes(

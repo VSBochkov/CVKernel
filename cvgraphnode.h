@@ -139,7 +139,7 @@ namespace CVKernel {
         void on_closed();
 
     signals:
-        void nextNode(QSharedPointer<CVProcessData> process_data, CVIONode* stream_node);
+        void next_node(QSharedPointer<CVProcessData> process_data);
         void send_metadata(QByteArray);
         void close_udp();
         void node_closed();
@@ -167,7 +167,6 @@ namespace CVKernel {
         CVStopwatch stopwatch;
 
     public:
-        QMap<int, std::pair<clock_t,int>> video_timings;
         int nodes_number;
     };
 
@@ -183,18 +182,16 @@ namespace CVKernel {
         double get_average_time();
 
     signals:
-        void nextNode(QSharedPointer<CVProcessData> process_data, CVIONode* stream_node);
-        void nextStat();
+        void next_node(QSharedPointer<CVProcessData> process_data);
 
     public slots:
-        virtual void process(QSharedPointer<CVProcessData> process_data, CVIONode* stream_node);
+        virtual void process(QSharedPointer<CVProcessData> process_data);
 
     private:
-        void calcAverageTime();
+        double calc_average_time();
     private:
         double timings[SIZE_BUF];
         double average_time;
-        double average_delay = 0.0;
         int frame_processed = 0;
         int frame_counter;
         bool fill_buf;

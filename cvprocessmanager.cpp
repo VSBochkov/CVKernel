@@ -15,15 +15,6 @@
 
 #include <iostream>
 
-
-CVKernel::CVProcessManager::CVProcessManager(QObject* parent) : QObject(parent)
-{
-}
-
-CVKernel::CVProcessManager::~CVProcessManager()
-{
-}
-
 CVKernel::CVProcessTree::CVProcessTree(CVProcessTree::Node* root_node) {
     root = root_node;
 }
@@ -32,7 +23,7 @@ void CVKernel::CVProcessManager::create_new_thread(CVProcessingNode* node) {
     QThread* cv_thread = new QThread;
     node->moveToThread(cv_thread);
     processing_nodes.insert(node);
-    connect(node, SIGNAL(destroyed()), cv_thread, SLOT(quit()));
+    QObject::connect(cv_thread, SIGNAL(finished()), node, SLOT(deleteLater()));
     cv_thread->start();
 }
 
@@ -63,9 +54,8 @@ void CVKernel::CVProcessManager::purpose(CVProcessTree::Node* par, CVProcessTree
         curr_node = cv_processor[curr->value].last();
     }
 
-    connect(parent_node, SIGNAL(nextNode(QSharedPointer<CVProcessData>, CVIONode*)),
-            curr_node, SLOT(process(QSharedPointer<CVProcessData>, CVIONode*)), Qt::UniqueConnection);
-    connect(parent_node, SIGNAL(destroyed()), curr_node, SLOT(deleteLater()));
+    QObject::connect(parent_node, SIGNAL(next_node(QSharedPointer<CVProcessData>)), curr_node, SLOT(process(QSharedPointer<CVProcessData>)), Qt::UniqueConnection);
+    QObject::connect(parent_node, SIGNAL(destroyed()), curr_node, SLOT(deleteLater()));
 
     connections.push_back(conn);
 }
@@ -91,8 +81,7 @@ void CVKernel::CVProcessManager::purpose(CVIONode* video_io, CVProcessTree::Node
         root_node = cv_processor[root->value].last();
     }
 
-    connect(video_io, SIGNAL(nextNode(QSharedPointer<CVProcessData>, CVIONode*)),
-            root_node, SLOT(process(QSharedPointer<CVProcessData>, CVIONode*)));
+    QObject::connect(video_io, SIGNAL(next_node(QSharedPointer<CVProcessData>)), root_node, SLOT(process(QSharedPointer<CVProcessData>)));
     //connect(video_io, SIGNAL(destroyed()), root_node, SLOT(deleteLater()));
     // TODO: make intelligent thread supervisor: if no one io node uses root processing node then delete all pipeline
 }
@@ -127,9 +116,9 @@ CVKernel::CVIONode* CVKernel::CVProcessManager::add_new_stream(QSharedPointer<CV
     );
 
     io->moveToThread(io_thread);
-    connect(io_thread, SIGNAL(started()), io, SLOT(process()));
-    connect(io, SIGNAL(node_closed()), io_thread, SLOT(quit()));
-    connect(io_thread, SIGNAL(finished()), io, SLOT(deleteLater()));
+    QObject::connect(io_thread, SIGNAL(started()), io, SLOT(process()));
+    QObject::connect(io, SIGNAL(node_closed()), io_thread, SLOT(quit()));
+    QObject::connect(io_thread, SIGNAL(finished()), io, SLOT(deleteLater()));
     max_fps = max_fps >= io->get_fps() ? max_fps : io->get_fps();
 
     purpose_processes(forest->proc_forest, io);

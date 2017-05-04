@@ -167,7 +167,9 @@ namespace CVKernel {
 
     private:
         CVInputProcessor receiver;
+    public:
         CVConnectorFactory& factory;
+    private:
         std::unique_ptr<CVConnectorState> state;
 
     protected:

@@ -52,11 +52,13 @@ namespace CVKernel {
         virtual void stop() override;
         virtual void close() override;
 
+    signals:
+        void client_disabled(QTcpSocket& tcp_state);
+
     public slots:
         void send_datagramm(QByteArray byte_arr);
         void do_close_udp();
         void on_stream_closed();
-
 
     private:
         std::unique_ptr<QUdpSocket> meta_udp_client;

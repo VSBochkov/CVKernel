@@ -136,7 +136,6 @@ CVKernel::CVIONode::~CVIONode()
         out_stream.release();
         qDebug() << "out_stream.release();";
     }
-    sleep(60);
 }
 
 void CVKernel::CVIONode::start()
@@ -202,8 +201,6 @@ void CVKernel::CVIONode::on_run()
     {
         out_stream.open(overlay_path.toStdString(), 1482049860, stopwatch.fps, frame.size());
     }
-
-    video_timings[frame_number] = {stopwatch.now(), nodes_number};
     QSharedPointer<CVProcessData> process_data(
         new CVProcessData(
             video_path, frame, frame_number,
@@ -211,7 +208,7 @@ void CVKernel::CVIONode::on_run()
             params, history
         )
     );
-    emit nextNode(process_data, this);
+    emit next_node(process_data);
     usleep(stopwatch.time());
     out_stream << video_data[video_path].overlay;
     emit send_metadata(CVJsonController::pack_to_json_ascii<CVProcessData>(*process_data.data()));
@@ -260,7 +257,7 @@ CVKernel::CVProcessingNode::CVProcessingNode() :
     frame_processed = 0;
 }
 
-void CVKernel::CVProcessingNode::calcAverageTime()
+double CVKernel::CVProcessingNode::calc_average_time()
 {
     double acc_time = 0.;
 
@@ -271,7 +268,7 @@ void CVKernel::CVProcessingNode::calcAverageTime()
         {
             acc_time += timings[i];
         }
-        average_time = acc_time / SIZE_BUF;
+        acc_time /= SIZE_BUF;
     }
     else
     {
@@ -279,16 +276,17 @@ void CVKernel::CVProcessingNode::calcAverageTime()
         {
             acc_time += timings[i];
         }
-        average_time = acc_time / frame_counter;
+        acc_time /= frame_counter;
         if (frame_counter == SIZE_BUF)
         {
             fill_buf = true;
             frame_counter %= SIZE_BUF;
         }
     }
+    return acc_time;
 }
 
-void CVKernel::CVProcessingNode::process(QSharedPointer<CVProcessData> process_data, CVIONode* stream_node)
+void CVKernel::CVProcessingNode::process(QSharedPointer<CVProcessData> process_data)
 {
     clock_t start = clock();
 
@@ -296,21 +294,9 @@ void CVKernel::CVProcessingNode::process(QSharedPointer<CVProcessData> process_d
     process_data->data[QString(this->metaObject()->className())] = node_data;
 
     timings[frame_counter++] = (double)(clock() - start) / CLOCKS_PER_SEC;
+    average_time = calc_average_time();
 
-    auto clocks = stream_node->video_timings.find(process_data->frame_num);
-    if (clocks != stream_node->video_timings.end())
-    {
-        average_delay = ((double)average_delay * frame_processed + (double)(clock() - clocks->first) / CLOCKS_PER_SEC) / ++frame_processed;
-    }
-
-    calcAverageTime();
-
-    if (--clocks->second == 0)
-    {
-        stream_node->video_timings.erase(clocks);
-    }
-
-    emit nextNode(process_data, stream_node);
+    emit next_node(process_data);
 }
 
 double CVKernel::CVProcessingNode::get_average_time()

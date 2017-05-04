@@ -18,6 +18,7 @@ CVKernel::CVNetworkManager::CVNetworkManager(QObject* parent, CVNetworkSettings&
 
 CVKernel::CVNetworkManager::~CVNetworkManager()
 {
+    close_all_connectors();
     delete receiver;
 }
 
@@ -54,8 +55,13 @@ void CVKernel::CVNetworkManager::init_new_conector()
 void CVKernel::CVNetworkManager::delete_connector()
 {
     QTcpSocket* connection = (QTcpSocket*) sender();
-    auto client_it = clients.find(connection);
-    auto supervisor_it = supervisors.find(connection);
+    delete_connector(*connection);
+}
+
+void CVKernel::CVNetworkManager::delete_connector(QTcpSocket& sock)
+{
+    auto client_it = clients.find(&sock);
+    auto supervisor_it = supervisors.find(&sock);
     if (client_it != clients.end())
     {
         client_it.value().clear();
@@ -66,7 +72,10 @@ void CVKernel::CVNetworkManager::delete_connector()
         supervisor_it.value().clear();
         supervisors.erase(supervisor_it);
     }
+    sock.close();
 
+    if (supervisors.empty() and clients.empty())
+        emit all_connectors_closed();
 }
 
 void CVKernel::CVNetworkManager::add_new_connector(QTcpSocket* socket)
@@ -89,4 +98,38 @@ QList<QSharedPointer<CVKernel::CVClient>> CVKernel::CVNetworkManager::get_client
 QList<QSharedPointer<CVKernel::CVSupervisor>> CVKernel::CVNetworkManager::get_supervisors()
 {
     return supervisors.values();
+}
+
+void CVKernel::CVNetworkManager::close_all_connectors()
+{
+    for (auto client_it = clients.begin(); client_it != clients.end(); client_it++)
+    {
+        QTcpSocket* tcp_state = client_it.key();
+        CVClient* client = client_it.value().data();
+        disconnect(tcp_state, SIGNAL(disconnected()), this, SLOT(delete_connector()));
+        connect(client, SIGNAL(client_disabled(QTcpSocket&)), this, SLOT(delete_connector(QTcpSocket&)));
+        CVConnectorState* state = client->factory.set_state(*client);
+        if (state->state != CVConnectorState::closed)
+        {
+            client->close();
+        }
+    }
+
+    for (auto supervisor_it = supervisors.begin(); supervisor_it != supervisors.end(); supervisor_it++)
+    {
+        QTcpSocket* tcp_state = supervisor_it.key();
+        CVSupervisor* supervisor = supervisor_it.value().data();
+        disconnect(tcp_state, SIGNAL(disconnected()), this, SLOT(delete_connector()));
+        CVConnectorState* state = supervisor->factory.set_state(*supervisor);
+        if (state->state != CVConnectorState::closed)
+        {
+            supervisor->close();
+        }
+        tcp_state->close();
+        supervisor_it.value().clear();
+
+        if (supervisors.empty() and clients.empty())
+            emit all_connectors_closed();
+    }
+    supervisors.clear();
 }

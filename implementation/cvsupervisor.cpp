@@ -82,7 +82,13 @@ void CVKernel::CVSupervisor::stop()
 
 void CVKernel::CVSupervisor::close()
 {
+    if (running)
+    {
+        stop();
+    }
     send_buffer(QByteArray("{}"), *tcp_supervision);
+    tcp_supervision->close();
+    supervision_port = 0;
     state_changed();
 }
 

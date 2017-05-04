@@ -92,11 +92,13 @@ void CVKernel::CVCloseCommand::execute()
 void CVKernel::CVConnector::run()
 {
     running = true;
+    state_changed();
 }
 
 void CVKernel::CVConnector::stop()
 {
     running = false;
+    state_changed();
 }
 
 unsigned CVKernel::CVConnector::get_id()
@@ -106,6 +108,9 @@ unsigned CVKernel::CVConnector::get_id()
 
 void CVKernel::CVConnector::send_buffer(QByteArray byte_arr, QTcpSocket& sock)
 {
+    if (not sock.isOpen())
+        return;
+
     quint64 arr_size = (quint64) byte_arr.size();
     char size[sizeof(quint64)];
     for (uint i = 0; i < sizeof(quint64); ++i) {

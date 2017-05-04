@@ -63,7 +63,6 @@ int CVKernel::CVClient::get_proc_nodes_number()
 void CVKernel::CVClient::close()
 {
     video_io->close();
-    state_changed();
 }
 
 void CVKernel::CVClient::run()
@@ -90,13 +89,15 @@ void CVKernel::CVClient::init_process_tree(QSharedPointer<CVProcessForest> proc_
 
 void CVKernel::CVClient::on_stream_closed()
 {
-    running = false;
-    state_changed();
-    disconnect(video_io, SIGNAL(node_closed()), this, SLOT(on_stream_closed()));
-    disconnect(video_io, SIGNAL(send_metadata(QByteArray)), this, SLOT(send_datagramm(QByteArray)));
-    disconnect(video_io, SIGNAL(close_udp()), this, SLOT(do_close_udp()));
+    if (running == true)
+    {
+        running = false;
+        state_changed();
+    }
+
     video_io = nullptr;
     state_changed();
+    emit client_disabled(tcp_state);
 }
 
 void CVKernel::CVClient::send_datagramm(QByteArray byte_arr)
