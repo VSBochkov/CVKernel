@@ -1,5 +1,5 @@
 #include <QApplication>
-#include <sys/types.h>
+#include <cstdlib>
 #include <unistd.h>
 #include "cvapplication.h"
 #include "videoproc/firedetectionfactory.h"
@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     if (result > 0) {
         return result;
     }
-    auto cv_app = new CVKernel::CVApplication("../cv_kernel_settings.json");
+    auto cv_app = new CVKernel::CVApplication(std::getenv("CVKERNEL_PATH") + QString("/cv_kernel_settings.json"));
     QObject::connect(cv_app, SIGNAL(destroyed()), &app, SLOT(quit()));
     return app.exec();
 }

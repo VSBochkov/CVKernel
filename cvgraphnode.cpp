@@ -306,5 +306,7 @@ double CVKernel::CVProcessingNode::get_average_time()
 
 void CVKernel::CVProcessingNode::reset_average_time()
 {
+    CVNetworkManager* net_manager = (CVNetworkManager*) sender();
+    disconnect(net_manager, SIGNAL(all_clients_closed()), this, SLOT(reset_average_time()));
     average_time = 0.;
 }

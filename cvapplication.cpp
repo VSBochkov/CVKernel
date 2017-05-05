@@ -111,18 +111,11 @@ void CVKernel::CVApplication::shutdown()
 
     for (CVProcessingNode* node: process_manager.processing_nodes)
     {
-        if (network_manager->get_supervisors().empty())
+        if (not network_manager->get_clients().empty())
         {
-            connect(network_manager, SIGNAL(all_clients_closed()), node->thread(), SLOT(quit()));
+            connect(network_manager, SIGNAL(all_clients_closed()), network_manager, SLOT(close_all_supervisors()));
         }
-        else
-        {
-            if (not network_manager->get_clients().empty())
-            {
-                connect(network_manager, SIGNAL(all_clients_closed()), network_manager, SLOT(close_all_supervisors()));
-            }
-            connect(network_manager, SIGNAL(all_supervisors_closed()), node->thread(), SLOT(quit()));
-        }
+        connect(network_manager, SIGNAL(all_supervisors_closed()), node->thread(), SLOT(quit()));
     }
 
     connect(network_manager, SIGNAL(all_supervisors_closed()), this, SLOT(deleteLater()));

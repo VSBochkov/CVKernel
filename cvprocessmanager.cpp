@@ -25,6 +25,7 @@ void CVKernel::CVProcessManager::create_new_thread(CVProcessingNode* node) {
     processing_nodes.insert(node);
     QObject::connect(cv_thread, SIGNAL(finished()), node, SLOT(deleteLater()));
     cv_thread->start();
+    qDebug() << "Added new processing node: " << node->metaObject()->className();
 }
 
 void CVKernel::CVProcessManager::purpose(CVProcessTree::Node* par, CVProcessTree::Node* curr)

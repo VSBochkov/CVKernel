@@ -56,10 +56,16 @@ class cv_network_controller:
                     'handler_type': cv_network_controller.iot_type
                 })
 
-    def __update_mac_ip_map(self):
-        self.mac_ip_map = {}
+    @staticmethod
+    def __update_mac_ip_map():
+        mac_ip_map = {}
         xml_file = 'nmap.xml'
-        subprocess.call(['nmap', '-oX', xml_file, '-sn', '192.168.59.0/24'])
+        hostname_pipe = os.popen('hostname -I')
+        ip_address = hostname_pipe.read().split('.')
+        if len(ip_address) < 4:
+            return mac_ip_map
+        ip_subnet = ip_address[0] + '.' + ip_address[1] + '.' + ip_address[2] + '.0/24'
+        subprocess.call(['nmap', '-oX', xml_file, '-sn', ip_subnet])
         tree = ET.parse(xml_file)
         os.remove(xml_file)
         root = tree.getroot()
@@ -71,7 +77,8 @@ class cv_network_controller:
                 if address['addrtype'] == 'ipv4':
                     ip_address = address['addr']
                 elif address['addrtype'] == 'mac':
-                    self.mac_ip_map[ip_address] = address['addr']
+                    mac_ip_map[address['addr']] = ip_address
+        return mac_ip_map
 
     def __scanner(self):
         self.mac_found_handlers = {}
@@ -87,12 +94,14 @@ class cv_network_controller:
                     print 'exit from __scanner'
                     return
                 elif command['type'] == cv_network_controller.add_mac:
+                    print '__scanner: added new mac_address - {}'.format(command['mac_address'])
                     self.mac_found_handlers[command['mac_address']] = command['handler_type']
             finally:
                 if len(self.mac_found_handlers.keys()) > 0:
-                    self.__update_mac_ip_map()
+                    self.mac_ip_map = self.__update_mac_ip_map()
                 for mac in self.mac_found_handlers.keys():
-                    if mac in self.mac_ip_map:
+                    if mac in self.mac_ip_map.keys():
+                        print 'mac found: {}'.format(mac)
                         if self.mac_found_handlers[mac] == cv_network_controller.cv_iot_type:
                             self.cv_iot_mac_found_handler(mac, self.mac_ip_map[mac])
                         else:
