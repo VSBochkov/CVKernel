@@ -86,7 +86,19 @@ void CVKernel::CVApplication::reboot()
     char tmp;
     ::read(sig_term_fd[1], &tmp, sizeof(tmp));
 
-    network_manager->close_all_connectors();
+    if (not network_manager->get_clients().empty())
+    {
+        for (CVProcessingNode* node: process_manager.processing_nodes)
+        {
+            connect(network_manager, SIGNAL(all_clients_closed()), node, SLOT(reset_average_time()));
+        }
+        connect(network_manager, SIGNAL(all_clients_closed()), network_manager, SLOT(close_all_supervisors()));
+        network_manager->close_all_clients();
+    }
+    else
+    {
+        network_manager->close_all_supervisors();
+    }
 
     sn_term->setEnabled(true);
 }
@@ -99,10 +111,25 @@ void CVKernel::CVApplication::shutdown()
 
     for (CVProcessingNode* node: process_manager.processing_nodes)
     {
-        connect(network_manager, SIGNAL(all_connectors_closed()), node->thread(), SLOT(quit()));
+        if (network_manager->get_supervisors().empty())
+        {
+            connect(network_manager, SIGNAL(all_clients_closed()), node->thread(), SLOT(quit()));
+        }
+        else
+        {
+            if (not network_manager->get_clients().empty())
+            {
+                connect(network_manager, SIGNAL(all_clients_closed()), network_manager, SLOT(close_all_supervisors()));
+            }
+            connect(network_manager, SIGNAL(all_supervisors_closed()), node->thread(), SLOT(quit()));
+        }
     }
-    connect(network_manager, SIGNAL(all_connectors_closed()), this, SLOT(deleteLater()));
-    network_manager->close_all_connectors();
+
+    connect(network_manager, SIGNAL(all_supervisors_closed()), this, SLOT(deleteLater()));
+    if (network_manager->get_clients().empty())
+        network_manager->close_all_supervisors();
+    else
+        network_manager->close_all_clients();
 
     sn_usr1->setEnabled(true);
 }

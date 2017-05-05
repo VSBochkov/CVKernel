@@ -186,6 +186,7 @@ namespace CVKernel {
 
     public slots:
         virtual void process(QSharedPointer<CVProcessData> process_data);
+        void reset_average_time();
 
     private:
         double calc_average_time();

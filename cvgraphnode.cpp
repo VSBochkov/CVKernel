@@ -303,3 +303,8 @@ double CVKernel::CVProcessingNode::get_average_time()
 {
     return average_time;
 }
+
+void CVKernel::CVProcessingNode::reset_average_time()
+{
+    average_time = 0.;
+}

@@ -35,7 +35,7 @@ namespace CVKernel {
 
         QList<QSharedPointer<CVClient>> get_clients();
         QList<QSharedPointer<CVSupervisor>> get_supervisors();
-        void close_all_connectors();
+        void close_all_clients();
 
     private:
         QTcpServer* tcp_server;
@@ -51,9 +51,11 @@ namespace CVKernel {
 
     signals:
         void udp_closed(CVIONode* io_node);
-        void all_connectors_closed();
+        void all_clients_closed();
+        void all_supervisors_closed();
 
     public slots:
+        void close_all_supervisors();
         void add_tcp_connection();
         void init_new_conector();
         void delete_connector();

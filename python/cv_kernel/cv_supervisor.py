@@ -13,6 +13,7 @@ class cv_supervisor(cv_connector):
     supervisor_status = 1
     supervisor_startup = 2
     supervision_info = 3
+    stop_display = 0x7f
 
     def __init__(self, network_controller, cvkernel_json_path, cvsupervisor_json_path,
                  run_state_handler, ready_state_handler, closed_state_handler):
@@ -66,9 +67,11 @@ class cv_supervisor(cv_connector):
             writer.write(frame)
             cv.imshow(overlay_path, frame)
             cv.waitKey(int(1000 / fps))
+
         cap.release()
         writer.release()
         cv.destroyWindow(overlay_path)
+        print 'exit from __display_overlay of #{}'.format(client_id)
 
     def __client_status_changed(self, packet):
         if packet['state'] == cv_connector.state_closed:
@@ -77,19 +80,20 @@ class cv_supervisor(cv_connector):
             print 'client #{} is ready'.format(packet['id'])
             if packet['overlay_path'] == '':
                 return
-            if packet['id'] in self.display_processes:
+            if packet['id'] in self.display_processes.keys():
                 self.display_processes[packet['id']]['process'].terminate()
                 self.display_processes.pop(packet['id'])
                 print 'overlay displayer closed'
-            self.display_processes[packet['id']] = {'overlay': packet['overlay_path']}
-            process = multiprocessing.Process(target=self.__display_overlay, args=(packet['id'],))
-            self.display_processes[packet['id']]['process'] = process
-            print 'created overlay displayer'
+            else:
+                self.display_processes[packet['id']] = {'overlay': packet['overlay_path']}
+                process = multiprocessing.Process(target=self.__display_overlay, args=(packet['id'],))
+                self.display_processes[packet['id']]['process'] = process
+                print 'created overlay displayer'
         elif packet['state'] == cv_connector.state_run:
             print 'client #{} is run'.format(packet['id'])
             if packet['overlay_path'] == '':
                 return
-            if packet['id'] in self.display_processes:
+            if packet['id'] in self.display_processes.keys():
                 self.display_processes[packet['id']]['process'].start()
             else:
                 self.display_processes[packet['id']] = {'overlay': packet['overlay_path']}

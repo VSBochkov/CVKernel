@@ -132,3 +132,4 @@ CVKernel::CVSupervisionInfo::CVSupervisionInfo(CVSupervisionInfo& prev_info, int
     average_timings = timings;
     prev_info = *this;
 }
+

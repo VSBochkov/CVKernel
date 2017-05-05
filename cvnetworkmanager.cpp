@@ -18,7 +18,6 @@ CVKernel::CVNetworkManager::CVNetworkManager(QObject* parent, CVNetworkSettings&
 
 CVKernel::CVNetworkManager::~CVNetworkManager()
 {
-    close_all_connectors();
     delete receiver;
 }
 
@@ -74,8 +73,8 @@ void CVKernel::CVNetworkManager::delete_connector(QTcpSocket& sock)
     }
     sock.close();
 
-    if (supervisors.empty() and clients.empty())
-        emit all_connectors_closed();
+    if (clients.empty())
+        emit all_clients_closed();
 }
 
 void CVKernel::CVNetworkManager::add_new_connector(QTcpSocket* socket)
@@ -100,7 +99,26 @@ QList<QSharedPointer<CVKernel::CVSupervisor>> CVKernel::CVNetworkManager::get_su
     return supervisors.values();
 }
 
-void CVKernel::CVNetworkManager::close_all_connectors()
+void CVKernel::CVNetworkManager::close_all_supervisors()
+{
+    for (auto supervisor_it = supervisors.begin(); supervisor_it != supervisors.end(); supervisor_it++)
+    {
+        QTcpSocket* tcp_state = supervisor_it.key();
+        CVSupervisor* supervisor = supervisor_it.value().data();
+        disconnect(tcp_state, SIGNAL(disconnected()), this, SLOT(delete_connector()));
+        CVConnectorState* state = supervisor->factory.set_state(*supervisor);
+        if (state->state != CVConnectorState::closed)
+        {
+            supervisor->close();
+        }
+        tcp_state->close();
+        supervisor_it.value().clear();
+    }
+    supervisors.clear();
+    emit all_supervisors_closed();
+}
+
+void CVKernel::CVNetworkManager::close_all_clients()
 {
     for (auto client_it = clients.begin(); client_it != clients.end(); client_it++)
     {
@@ -114,22 +132,4 @@ void CVKernel::CVNetworkManager::close_all_connectors()
             client->close();
         }
     }
-
-    for (auto supervisor_it = supervisors.begin(); supervisor_it != supervisors.end(); supervisor_it++)
-    {
-        QTcpSocket* tcp_state = supervisor_it.key();
-        CVSupervisor* supervisor = supervisor_it.value().data();
-        disconnect(tcp_state, SIGNAL(disconnected()), this, SLOT(delete_connector()));
-        CVConnectorState* state = supervisor->factory.set_state(*supervisor);
-        if (state->state != CVConnectorState::closed)
-        {
-            supervisor->close();
-        }
-        tcp_state->close();
-        supervisor_it.value().clear();
-
-        if (supervisors.empty() and clients.empty())
-            emit all_connectors_closed();
-    }
-    supervisors.clear();
 }
