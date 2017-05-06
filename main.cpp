@@ -1,4 +1,4 @@
-#include <QApplication>
+#include <QCoreApplication>
 #include <cstdlib>
 #include <unistd.h>
 #include "cvapplication.h"
@@ -6,7 +6,7 @@
 
 int main(int argc, char *argv[])
 {
-    QApplication app(argc, argv);
+    QCoreApplication app(argc, argv);
     qRegisterMetaType<QSharedPointer<CVKernel::CVProcessData>>("QSharedPointer<CVProcessData>");
     qRegisterMetaType<QSharedPointer<CVKernel::CVProcessForest>>("QSharedPointer<CVProcessForest>");
     QList<CVKernel::CVNodeFactory*> factories = { new FireDetectionFactory };

@@ -6,7 +6,6 @@
 
 QT       += core
 QT       += network
-QT       += widgets
 
 TARGET = CVKernel
 CONFIG   += console
