@@ -49,15 +49,16 @@ class Test:
         self.prev_state = multiprocessing.Value('i', cv_connector.state_closed)
         self.test_proc = multiprocessing.Process(target=self.__test)
 
+        cv_kernel_path = os.environ.get('CVKERNEL_PATH')
         self.network_controller = cv_network_controller(None)
         self.client = cv_client(
             network_controller=self.network_controller,
-            cvkernel_json_path='/home/vbochkov/workspace/development/CVKernel/cv_kernel_settings.json',
+            cvkernel_json_path=cv_kernel_path + '/cv_kernel_settings.json',
             run_state_handler=self.test_on_run,
             ready_state_handler=self.test_on_ready,
             closed_state_handler=self.test_on_closed,
             meta_handler=self.meta_handler,
-            cvproc_json_path='/home/vbochkov/workspace/development/FireRobotDriver/fire_overlay_on_pc.json'
+            cvproc_json_path=cv_kernel_path + '/fire_overlay_on_rpi.json'
         )
 
         self.test_proc.run()
