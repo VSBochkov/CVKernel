@@ -26,8 +26,8 @@ CVKernel::CVConnectorState* CVKernel::CVClientFactory::set_state(CVConnector& co
     }
 }
 
-CVKernel::CVClient::CVClient(unsigned index, CVProcessManager& pm, CVNetworkManager& nm, QTcpSocket& tcp)
-    : CVConnector(index, *CVClientFactory::instance(), pm, nm, tcp)
+CVKernel::CVClient::CVClient(unsigned index, CVProcessManager& pm, CVNetworkManager& nm, QTcpSocket& sock)
+    : CVConnector(index, *CVClientFactory::instance(), pm, nm, sock)
 {
     video_io = nullptr;
     meta_udp_client.reset(new QUdpSocket);
@@ -38,7 +38,7 @@ CVKernel::CVClient::CVClient(unsigned index, CVProcessManager& pm, CVNetworkMana
     }
 
     state_changed();
-    qDebug() << "added CVClient id: " << id;
+    qDebug() << "added CVClient id:" << id << "ip_address:" << sock.peerAddress();
 }
 
 CVKernel::CVClient::~CVClient()
