@@ -4,6 +4,7 @@
 #include "cvapplication.h"
 
 #include <QTimer>
+#include <QDateTime>
 #include <opencv2/opencv.hpp>
 #include <utility>
 #include <unistd.h>
@@ -66,8 +67,18 @@ CVKernel::CVIONode::CVIONode(int device_id, QString output_path,
     if (not output_path.isEmpty() and colon_id > 0)
     {
         QString protocol = output_path.left(colon_id);
-        overlay_path = (protocol == "file") ? output_path.mid(colon_id + 1) :
-                        protocol + "://" + get_ip_address() + ":" + output_path.mid(colon_id + 1);
+        if (protocol == "file")
+        {
+            overlay_path = output_path.mid(colon_id + 1);
+            int last_dot_id = overlay_path.lastIndexOf('.');
+            QString format = "dd.MMM.yy_hh:mm:ss";
+            overlay_path.insert(last_dot_id, QDateTime::currentDateTime().toString(format));
+            qDebug() << "write to file:" << overlay_path;
+        }
+        else
+        {
+            overlay_path = protocol + "://" + get_ip_address() + ":" + output_path.mid(colon_id + 1);
+        }
     }
     else
     {
@@ -115,6 +126,18 @@ CVKernel::CVIONode::CVIONode(QString input_path, QString output_path,
     if (not output_path.isEmpty() and colon_id > 0)
     {
         QString protocol = output_path.left(colon_id);
+        if (protocol == "file")
+        {
+            overlay_path = output_path.mid(colon_id + 1);
+            int last_dot_id = overlay_path.lastIndexOf('.');
+            QString format = "dd.MMM.yy_hh:mm:ss";
+            overlay_path.insert(last_dot_id, QDateTime::currentDateTime().toString(format));
+            qDebug() << "write to file:" << overlay_path;
+        }
+        else
+        {
+            overlay_path = protocol + "://" + get_ip_address() + ":" + output_path.mid(colon_id + 1);
+        }
         overlay_path = (protocol == "file") ? output_path.mid(colon_id + 1) :
                         protocol + "://" + get_ip_address() + ":" + output_path.mid(colon_id + 1);
     }
