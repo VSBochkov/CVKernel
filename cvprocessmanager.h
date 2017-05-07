@@ -74,12 +74,8 @@ namespace CVKernel {
     {
     public:
         QMap<QString, double> get_average_timings();
-
-        void purpose_processes(
-            QList<CVProcessTree*> processForest,
-            CVIONode* video_io
-        );
-
+        void purpose_processes(QList<CVProcessTree*> processForest, CVIONode* video_io);
+        void set_network_manager(CVNetworkManager* manager);
         CVIONode* add_new_stream(QSharedPointer<CVProcessForest> proc_forest);
 
     private:
@@ -102,6 +98,7 @@ namespace CVKernel {
         };
         QList<connection> connections;
         QMap<QString, QList<CVProcessingNode*>> cv_processor;
+        CVNetworkManager* network_manager_wp;
 
     public:
         QSet<CVProcessingNode*> processing_nodes;

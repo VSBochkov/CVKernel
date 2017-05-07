@@ -46,7 +46,7 @@ void CVKernel::CVConnector::state_changed()
 
 QHostAddress CVKernel::CVConnector::get_ip_address()
 {
-    return tcp_state.localAddress();
+    return tcp_state.peerAddress();
 }
 
 void CVKernel::CVConnectorRun::handleIncommingMessage(QByteArray &buffer)

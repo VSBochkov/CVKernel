@@ -19,11 +19,17 @@ CVKernel::CVProcessTree::CVProcessTree(CVProcessTree::Node* root_node) {
     root = root_node;
 }
 
+void CVKernel::CVProcessManager::set_network_manager(CVNetworkManager* manager)
+{
+    network_manager_wp = manager;
+}
+
 void CVKernel::CVProcessManager::create_new_thread(CVProcessingNode* node) {
     QThread* cv_thread = new QThread;
     node->moveToThread(cv_thread);
     processing_nodes.insert(node);
     QObject::connect(cv_thread, SIGNAL(finished()), node, SLOT(deleteLater()));
+    QObject::connect(network_manager_wp, SIGNAL(all_clients_closed()), node, SLOT(reset_average_time()));
     cv_thread->start();
     qDebug() << "Added new processing node: " << node->metaObject()->className();
 }

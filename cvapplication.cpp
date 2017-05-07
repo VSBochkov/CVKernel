@@ -33,6 +33,7 @@ CVKernel::CVApplication::CVApplication(QString app_settings_json) : QObject(NULL
 {
     net_settings = CVJsonController::get_from_json_file<CVNetworkSettings>(app_settings_json);
     network_manager = new CVNetworkManager(this, *net_settings, process_manager);
+    process_manager.set_network_manager(network_manager);
 
     if (::socketpair(AF_UNIX, SOCK_STREAM, 0, sig_usr1_fd)) {
        qFatal("Couldn't create USR1 socketpair");
@@ -88,10 +89,6 @@ void CVKernel::CVApplication::reboot()
 
     if (not network_manager->get_clients().empty())
     {
-        for (CVProcessingNode* node: process_manager.processing_nodes)
-        {
-            connect(network_manager, SIGNAL(all_clients_closed()), node, SLOT(reset_average_time()));
-        }
         connect(network_manager, SIGNAL(all_clients_closed()), network_manager, SLOT(close_all_supervisors()));
         network_manager->close_all_clients();
     }
@@ -113,6 +110,7 @@ void CVKernel::CVApplication::shutdown()
     {
         if (not network_manager->get_clients().empty())
         {
+            disconnect(network_manager, SIGNAL(all_clients_closed()), node, SLOT(reset_average_time()));
             connect(network_manager, SIGNAL(all_clients_closed()), network_manager, SLOT(close_all_supervisors()));
         }
         connect(network_manager, SIGNAL(all_supervisors_closed()), node->thread(), SLOT(quit()));
