@@ -50,10 +50,13 @@ class cv_supervisor(cv_connector):
     def __display_overlay(self, client_id):
         overlay_path = self.display_processes[client_id]['overlay']
 
+        print 'Open overlay stream at: {}'.format(overlay_path)
         cap = cv.VideoCapture(overlay_path)
         while not cap.isOpened():
+            print 'capture is not opened'
             cap = cv.VideoCapture(overlay_path)
 
+        print 'overlay stream is open'
         fps = cap.get(cv.CAP_PROP_FPS)
         while fps > 100:
             fps /= 10.
@@ -78,8 +81,12 @@ class cv_supervisor(cv_connector):
             print 'client #{} is closed'.format(packet['id'])
         elif packet['state'] == cv_connector.state_ready:
             print 'client #{} is ready'.format(packet['id'])
-            if packet['overlay_path'] == '':
+            if packet['overlay_path'] == '' \
+                    or packet['overlay_path'][0:2] != 'udp' \
+                    or packet['overlay_path'][0:2] != 'rtp' \
+                    or packet['overlay_path'][0:3] != 'rtsp':
                 return
+            print 'overlay_path: {}'.format(packet['overlay_path'])
             if packet['id'] in self.display_processes.keys():
                 self.display_processes[packet['id']]['process'].terminate()
                 self.display_processes.pop(packet['id'])
@@ -91,8 +98,12 @@ class cv_supervisor(cv_connector):
                 print 'created overlay displayer'
         elif packet['state'] == cv_connector.state_run:
             print 'client #{} is run'.format(packet['id'])
-            if packet['overlay_path'] == '':
+            if packet['overlay_path'] == '' \
+                    or packet['overlay_path'][0:2] != 'udp' \
+                    or packet['overlay_path'][0:2] != 'rtp' \
+                    or packet['overlay_path'][0:3] != 'rtsp':
                 return
+            print 'overlay_path: {}'.format(packet['overlay_path'])
             if packet['id'] in self.display_processes.keys():
                 self.display_processes[packet['id']]['process'].start()
             else:

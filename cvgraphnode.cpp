@@ -199,7 +199,7 @@ void CVKernel::CVIONode::on_run()
     }
     if ((not overlay_path.isEmpty()) and (not out_stream.isOpened()))
     {
-        out_stream.open(overlay_path.toStdString(), 1482049860, stopwatch.fps, frame.size());
+        out_stream.open(overlay_path.toStdString(), 1482049860, stopwatch.fps, frame.size(), true);
     }
     QSharedPointer<CVProcessData> process_data(
         new CVProcessData(
