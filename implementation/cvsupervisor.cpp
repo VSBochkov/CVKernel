@@ -43,7 +43,7 @@ CVKernel::CVSupervisor::CVSupervisor(unsigned int id, CVProcessManager& pm, CVNe
     {
         connect(client.data(), SIGNAL(notify_supervisors(CVConnectorState&)), this, SLOT(send_connector_state_change(CVConnectorState&)));
     }
-    qDebug() << "added CVSupervisor id: " << id;
+    qDebug() << "added CVSupervisor id:" << id << "ip_address:" << sock.peerAddress();
 }
 
 CVKernel::CVSupervisor::~CVSupervisor()
@@ -59,7 +59,7 @@ void CVKernel::CVSupervisor::init_supervision(QSharedPointer<CVSupervisionSettin
 {
     supervision_port = settings->port;
     update_timer_value = settings->update_timer_value;
-    tcp_supervision->connectToHost(tcp_state.localAddress(), supervision_port);
+    tcp_supervision->connectToHost(tcp_state.peerAddress(), supervision_port);
     tcp_supervision->waitForConnected(-1);
     send_buffer(
         CVJsonController::pack_to_json_ascii<CVSupervisorStartup>(
