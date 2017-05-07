@@ -13,6 +13,7 @@ class cv_network_controller:
     localhost = '127.0.0.1'
     add_mac = 1
     stop_scanner = 2
+    local_mac = 3
     cv_iot_type = 0x7f
     iot_type = 0x6f
 
@@ -22,11 +23,13 @@ class cv_network_controller:
         self.scanner_mtx = multiprocessing.RLock()
         self.scanner_queue = multiprocessing.Queue()
         self.scanner_cv = multiprocessing.Condition(self.scanner_mtx)
-        self.scanner_proc = multiprocessing.Process(target=self.__scanner)
-        self.scanner_proc.start()
+        #self.scanner_proc = multiprocessing.Process(target=self.__scanner)
+        #self.scanner_proc.start()
 
     def set_cv_iot_mac_found_handler(self, cv_iot_mac_found_handler):
         self.cv_iot_mac_found_handler = cv_iot_mac_found_handler
+        self.scanner_proc = multiprocessing.Process(target=self.__scanner)
+        self.scanner_proc.start()
 
     def stop(self):
         self.scanner_queue.put({'type': cv_network_controller.stop_scanner})
@@ -35,8 +38,10 @@ class cv_network_controller:
     def add_cvkernel_mac_handler(self, mac_address):
         with self.scanner_mtx:
             if cv_network_controller.is_local_mac_address(mac_address):
-                self.cv_iot_mac_found_handler(mac_address, cv_network_controller.localhost)
-                print 'is_local_mac'
+                self.scanner_queue.put({
+                    'type': cv_network_controller.local_mac,
+                    'handler_type': cv_network_controller.cv_iot_type
+                })
             else:
                 self.scanner_queue.put({
                     'type': cv_network_controller.add_mac,
@@ -47,8 +52,10 @@ class cv_network_controller:
     def add_mac_handler(self, mac_address):
         with self.scanner_mtx:
             if cv_network_controller.is_local_mac_address(mac_address):
-                self.iot_mac_found_handler(mac_address, cv_network_controller.localhost)
-                print 'is_local_mac'
+                self.scanner_queue.put({
+                    'type': cv_network_controller.local_mac,
+                    'handler_type': cv_network_controller.iot_type
+                })
             else:
                 self.scanner_queue.put({
                     'type': cv_network_controller.add_mac,
@@ -81,8 +88,8 @@ class cv_network_controller:
         return mac_ip_map
 
     def __scanner(self):
-        self.mac_found_handlers = {}
-        self.mac_ip_map = {}
+        mac_found_handlers = {}
+        mac_ip_map = {}
 
         while True:
             try:
@@ -93,20 +100,27 @@ class cv_network_controller:
                 if command['type'] == cv_network_controller.stop_scanner:
                     print 'exit from __scanner'
                     return
+                elif command['type'] == cv_network_controller.local_mac:
+                    print '__scanner: localhost'
+                    if command['handler_type'] == cv_network_controller.cv_iot_type:
+                        self.cv_iot_mac_found_handler(None, cv_network_controller.localhost)
+                    else:
+                        self.iot_mac_found_handler(None, cv_network_controller.localhost)
                 elif command['type'] == cv_network_controller.add_mac:
                     print '__scanner: added new mac_address - {}'.format(command['mac_address'])
-                    self.mac_found_handlers[command['mac_address']] = command['handler_type']
+                    mac_found_handlers[command['mac_address']] = command['handler_type']
             finally:
-                if len(self.mac_found_handlers.keys()) > 0:
-                    self.mac_ip_map = self.__update_mac_ip_map()
-                for mac in self.mac_found_handlers.keys():
-                    if mac in self.mac_ip_map.keys():
+                if len(mac_found_handlers.keys()) > 0:
+                    mac_ip_map = self.__update_mac_ip_map()
+                for mac in mac_found_handlers.keys():
+                    mac = mac.lower().upper()
+                    if mac in mac_ip_map.keys():
                         print 'mac found: {}'.format(mac)
-                        if self.mac_found_handlers[mac] == cv_network_controller.cv_iot_type:
-                            self.cv_iot_mac_found_handler(mac, self.mac_ip_map[mac])
+                        if mac_found_handlers[mac] == cv_network_controller.cv_iot_type:
+                            self.cv_iot_mac_found_handler(mac, mac_ip_map[mac])
                         else:
-                            self.iot_mac_found_handler(mac, self.mac_ip_map[mac])
-                        self.mac_found_handlers.pop(mac)
+                            self.iot_mac_found_handler(mac, mac_ip_map[mac])
+                        mac_found_handlers.pop(mac)
 
     @staticmethod
     def async_receive_byte(sock):
@@ -120,6 +134,7 @@ class cv_network_controller:
 
     @staticmethod
     def is_local_mac_address(target_mac):
+        target_mac = target_mac.upper().lower()
         result = False
         pipe = os.popen('ifconfig')
         out = pipe.readlines()

@@ -25,13 +25,13 @@ class cv_connector(object):
         self.connector_type = connector_type
         self.connector_settings = connector_settings
         self.network_controller = network_controller
-        self.network_controller.set_cv_iot_mac_found_handler(self.connect_to_cvkernel)
         self.state_mutex = multiprocessing.RLock()
         self.state_cv = multiprocessing.Condition(self.state_mutex)
         self.rest_run = multiprocessing.Value('b', 0)
         self.tcp_queue = multiprocessing.Queue()
         self.rest = multiprocessing.Process(target=self.__state_machine)
         self.rest.start()
+        self.network_controller.set_cv_iot_mac_found_handler(self.connect_to_cvkernel)
         self.network_controller.add_cvkernel_mac_handler(self.cv_kernel_settings['mac_address'])
 
     def run(self):
