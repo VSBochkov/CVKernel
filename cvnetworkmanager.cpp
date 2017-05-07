@@ -29,9 +29,14 @@ void CVKernel::CVNetworkManager::setup_tcp_server(CVNetworkSettings& settings) {
 
 void CVKernel::CVNetworkManager::add_tcp_connection() {
     QTcpSocket *new_connection = tcp_server->nextPendingConnection();
-    if (not new_connection->isValid())
+    if (not new_connection->isOpen()) {
+        qDebug() << "New tcp connector is not opened";
         return;
-
+    }
+    if (not new_connection->isValid()) {
+        qDebug() << "New tcp connector is invalid";
+        return;
+    }
     connect(new_connection, SIGNAL(readyRead()), this, SLOT(init_new_conector()));
     connect(new_connection, SIGNAL(disconnected()), this, SLOT(delete_connector()));
 }
