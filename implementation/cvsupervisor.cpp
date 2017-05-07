@@ -60,6 +60,7 @@ void CVKernel::CVSupervisor::init_supervision(QSharedPointer<CVSupervisionSettin
     supervision_port = settings->port;
     update_timer_value = settings->update_timer_value;
     tcp_supervision->connectToHost(tcp_state.localAddress(), supervision_port);
+    tcp_supervision->waitForConnected(-1);
     send_buffer(
         CVJsonController::pack_to_json_ascii<CVSupervisorStartup>(
             CVSupervisorStartup(network_manager.get_clients())

@@ -108,12 +108,11 @@ class cv_network_controller:
                         self.iot_mac_found_handler(None, cv_network_controller.localhost)
                 elif command['type'] == cv_network_controller.add_mac:
                     print '__scanner: added new mac_address - {}'.format(command['mac_address'])
-                    mac_found_handlers[command['mac_address']] = command['handler_type']
+                    mac_found_handlers[command['mac_address'].lower().upper()] = command['handler_type']
             finally:
                 if len(mac_found_handlers.keys()) > 0:
                     mac_ip_map = self.__update_mac_ip_map()
                 for mac in mac_found_handlers.keys():
-                    mac = mac.lower().upper()
                     if mac in mac_ip_map.keys():
                         print 'mac found: {}'.format(mac)
                         if mac_found_handlers[mac] == cv_network_controller.cv_iot_type:
