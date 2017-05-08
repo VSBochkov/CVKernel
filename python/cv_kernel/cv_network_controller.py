@@ -17,14 +17,17 @@ class cv_network_controller:
     cv_iot_type = 0x7f
     iot_type = 0x6f
 
+    connection_is_broken = 0x3a
+    no_data = 0x3b
+    invalid_data = 0x3c
+
+
     def __init__(self, iot_mac_found_handler):
         self.cv_iot_mac_found_handler = None
         self.iot_mac_found_handler = iot_mac_found_handler
         self.scanner_mtx = multiprocessing.RLock()
         self.scanner_queue = multiprocessing.Queue()
         self.scanner_cv = multiprocessing.Condition(self.scanner_mtx)
-        #self.scanner_proc = multiprocessing.Process(target=self.__scanner)
-        #self.scanner_proc.start()
 
     def set_cv_iot_mac_found_handler(self, cv_iot_mac_found_handler):
         self.cv_iot_mac_found_handler = cv_iot_mac_found_handler
@@ -128,9 +131,12 @@ class cv_network_controller:
             sock.setblocking(0)
             byte = sock.recv(1)
         except socket.error:
-            return None
+            return cv_network_controller.no_data
         else:
-            return byte
+            if len(byte) == 0:
+                return cv_network_controller.connection_is_broken
+            else:
+                return byte
 
     @staticmethod
     def is_local_mac_address(target_mac):
@@ -194,15 +200,17 @@ class cv_network_controller:
             sock.setblocking(0)
             size_arr = sock.recv(cv_network_controller.sizeof_uint64)
         except socket.error:
-            return None
+            return cv_network_controller.no_data
         else:
             if len(size_arr) == 0:
-                return None
+                return cv_network_controller.connection_is_broken
             size = cv_network_controller.__bytearr_to_uint(size_arr)
             if size == 0:
-                return None
+                return cv_network_controller.invalid_data
             sock.setblocking(1)
             buf = cv_network_controller.__recv_all(sock, size)
+            if len(buf) == 0:
+                return cv_network_controller.connection_is_broken
             return json.loads(buf)
 
     @staticmethod

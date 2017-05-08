@@ -64,6 +64,7 @@ class cv_connector(object):
         self.state_tcp = cv_network_controller.connect_to_tcp_host(
             kernel_address, self.cv_kernel_settings['tcp_server_port']
         )
+        print '__state_machine: cvkernel connected'
 
         connection_state = cv_connector.state_closed
         prev_connection_state = cv_connector.state_closed
@@ -76,13 +77,24 @@ class cv_connector(object):
             packet = self.tcp_queue.get()
             cv_network_controller.send_packet(self.state_tcp, packet)
             response = cv_network_controller.receive_packet(self.state_tcp)
-            try:
-                connection_state = response['state']
-            except KeyError:
-                print 'Bad response from kernel: {}'.format(response)
+            if response == cv_network_controller.connection_is_broken:
+                print '__state_machine: cvkernel disconnected, try to connect again'
+                self.state_tcp = cv_network_controller.connect_to_tcp_host(
+                    kernel_address, self.cv_kernel_settings['tcp_server_port']
+                )
+                print '__state_machine: cvkernel connected'
+            elif response == cv_network_controller.invalid_data:
+                print '__state_machine: Bad response from kernel'
+            elif response == cv_network_controller.no_data:
+                pass
             else:
-                self.state_changed_handler[connection_state]()
-                prev_connection_state = connection_state
+                try:
+                    connection_state = response['state']
+                except KeyError:
+                    print '__state_machine: Bad response from kernel: {}'.format(response)
+                else:
+                    self.state_changed_handler[connection_state]()
+                    prev_connection_state = connection_state
 
         rest_run = True
         while rest_run:
@@ -91,16 +103,26 @@ class cv_connector(object):
             except Queue.Empty:
                 pass
             else:
-                print 'got packet {}'.format(packet)
+                print '__state_machine: got packet {}'.format(packet)
                 cv_network_controller.send_packet(self.state_tcp, packet)
             finally:
                 response = cv_network_controller.async_receive_packet(self.state_tcp)
-                if response is not None:
+                if response == cv_network_controller.connection_is_broken:
+                    print '__state_machine: cvkernel disconnected, try to connect again'
+                    self.state_tcp = cv_network_controller.connect_to_tcp_host(
+                        kernel_address, self.cv_kernel_settings['tcp_server_port']
+                    )
+                    print '__state_machine: cvkernel connected'
+                elif response == cv_network_controller.invalid_data:
+                    print '__state_machine: Bad response from kernel'
+                elif response == cv_network_controller.no_data:
+                    pass
+                else:
                     try:
                         connection_state = response['state']
                         self.state_changed_handler[connection_state]()
                     except KeyError:
-                        print 'Bad response from kernel: {}'.format(response)
+                        print '__state_machine: Bad response from kernel: {}'.format(response)
                     else:
                         if closed_by_originator():
                             self.state_tcp.close()
