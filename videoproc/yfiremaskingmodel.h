@@ -9,6 +9,7 @@ public:
     DataYFireMM(int rows, int cols);
     virtual ~DataYFireMM();
     cv::Mat mask;
+    ulong pixel_cnt;
 };
 
 struct YFireParams : public CVKernel::CVNodeParams {

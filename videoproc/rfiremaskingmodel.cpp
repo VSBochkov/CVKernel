@@ -16,28 +16,44 @@ QSharedPointer<CVKernel::CVNodeData> RFireMaskingModel::compute(QSharedPointer<C
     uchar* frame_matr = frame.data;
     uchar* res_matr   = result->mask.data;
 
-    if (!params->draw_overlay) {
-    #pragma omp parallel for
-        for (int i = 0; i < frame.rows; ++i) {
-            for (int j = 0; j < frame.cols; ++j) {
-                uchar b = frame_matr[(i * frame.cols + j) * 3], g = frame_matr[(i * frame.cols + j) * 3 + 1], r = frame_matr[(i * frame.cols + j) * 3 + 2];
-                res_matr[i * frame.cols + j] = (r > g && g > b && r > 190 && g > 100 && b < 140) ? 1 : 0;
-                result->pixel_cnt += res_matr[i * frame.cols + j];
-            }
-        }
-    } else {
-        cv::Mat overlay = CVKernel::video_data[process_data->video_name].overlay;
-        uchar* over_matr  = overlay.data;
 
-    #pragma omp parallel for
-        for (int i = 0; i < frame.rows; ++i) {
-            for (int j = 0; j < frame.cols; ++j) {
-                uchar b = frame_matr[(i * frame.cols + j) * 3], g = frame_matr[(i * frame.cols + j) * 3 + 1], r = frame_matr[(i * frame.cols + j) * 3 + 2];
-                res_matr[i * frame.cols + j] = (r > g && g > b && r > 190 && g > 100 && b < 140) ? 1 : 0;
-                if (res_matr[i * frame.cols + j]) {
-                   over_matr[(i * frame.cols + j) * 3 + 1] = 0xff;
-                   over_matr[(i * frame.cols + j) * 3 + 2] = 0xff;
-                   result->pixel_cnt++;
+    int left_top_brightness = (frame_matr[(4 * frame.cols + 4) * 3] + frame_matr[(4 * frame.cols + 4) * 3 + 1] + frame_matr[(4 * frame.cols + 4) * 3 + 2]);
+    int right_top_brightness = (frame_matr[(5 * frame.cols - 4) * 3] + frame_matr[(5 * frame.cols - 4) * 3 + 1] + frame_matr[(5 * frame.cols - 4) * 3 + 2]);
+
+    if (left_top_brightness < 150 or right_top_brightness < 150)
+    {
+        /*Video capture can be blinded or there is night, work into GRAYSCALE*/
+        cv::Mat gray;
+        cv::cvtColor(frame, gray, CV_BGR2GRAY);
+        result->mask = gray > 180;
+        cv::threshold(result->mask, result->mask, 180., 1., cv::THRESH_BINARY);
+        result->pixel_cnt = (ulong) cv::sum(result->mask)[0];
+    }
+    else
+    {
+        if (!params->draw_overlay) {
+        #pragma omp parallel for
+            for (int i = 0; i < frame.rows; ++i) {
+                for (int j = 0; j < frame.cols; ++j) {
+                    uchar b = frame_matr[(i * frame.cols + j) * 3], g = frame_matr[(i * frame.cols + j) * 3 + 1], r = frame_matr[(i * frame.cols + j) * 3 + 2];
+                    res_matr[i * frame.cols + j] = (r > g && g > b && r > 190 && g > 100 && b < 140) ? 1 : 0;
+                    result->pixel_cnt += res_matr[i * frame.cols + j];
+                }
+            }
+        } else {
+            cv::Mat overlay = CVKernel::video_data[process_data->video_name].overlay;
+            uchar* over_matr  = overlay.data;
+
+        #pragma omp parallel for
+            for (int i = 0; i < frame.rows; ++i) {
+                for (int j = 0; j < frame.cols; ++j) {
+                    uchar b = frame_matr[(i * frame.cols + j) * 3], g = frame_matr[(i * frame.cols + j) * 3 + 1], r = frame_matr[(i * frame.cols + j) * 3 + 2];
+                    res_matr[i * frame.cols + j] = (r > g && g > b && r > 190 && g > 100 && b < 140) ? 1 : 0;
+                    if (res_matr[i * frame.cols + j]) {
+                       over_matr[(i * frame.cols + j) * 3 + 1] = 0;
+                       over_matr[(i * frame.cols + j) * 3 + 2] = 0xff;
+                       result->pixel_cnt++;
+                    }
                 }
             }
         }
