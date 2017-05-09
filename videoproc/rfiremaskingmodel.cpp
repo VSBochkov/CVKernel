@@ -9,64 +9,86 @@ DataRFireMM::DataRFireMM(int rows, int cols) :
 
 DataRFireMM::~DataRFireMM() {}
 
+RFireHistory::RFireHistory()
+{
+    ema_rgb_extracted = 1.;
+}
+
+void RFireHistory::clear_history()
+{
+    ema_rgb_extracted = 1.;
+}
+
 RFireParams::RFireParams(QJsonObject& json_obj) : CVKernel::CVNodeParams(json_obj)
 {
     QJsonObject::iterator iter;
-    brightness_threshold = (iter = json_obj.find("brightness_threshold")) == json_obj.end() ? 150 : iter.value().toInt();
+    rgb_area_threshold = (iter = json_obj.find("rgb_area_threshold")) == json_obj.end() ? 0.02 : iter.value().toDouble();
+    ema_rgb_threshold = (iter = json_obj.find("ema_rgb_threshold")) == json_obj.end() ? 0.2 : iter.value().toDouble();
 }
 
 QSharedPointer<CVKernel::CVNodeData> RFireMaskingModel::compute(QSharedPointer<CVKernel::CVProcessData> process_data) {
     cv::Mat frame = CVKernel::video_data[process_data->video_name].frame;
     QSharedPointer<RFireParams> params = process_data->params[metaObject()->className()].staticCast<RFireParams>();
+    QSharedPointer<RFireHistory> history = process_data->history[metaObject()->className()].staticCast<RFireHistory>();
     QSharedPointer<DataRFireMM> result(new DataRFireMM(frame.rows, frame.cols));
     uchar* frame_matr = frame.data;
     uchar* res_matr   = result->mask.data;
 
-
-    cv::Mat left_top(frame.rowRange(0, 5).colRange(0, 5));
-    auto left_top_sum = cv::sum(left_top);
-    cv::Mat right_top(frame.rowRange(0, 5).colRange(frame.cols - 5, frame.cols));
-    auto right_top_sum = cv::sum(left_top);
-
-    if (left_top_sum[0] + left_top_sum[1] + left_top_sum[2] < 150 * left_top.rows * left_top.cols or
-            right_top_sum[0] + right_top_sum[1] + right_top_sum[2] < 150 * right_top.rows * right_top.cols)
-    {
-        /*Video capture can be blinded or there is night, work into GRAYSCALE*/
-        cv::Mat gray;
-        cv::cvtColor(frame, gray, CV_BGR2GRAY);
-        result->mask = gray > 180;
-        cv::threshold(result->mask, result->mask, 180., 1., cv::THRESH_BINARY);
-        result->pixel_cnt = (ulong) cv::sum(result->mask)[0];
-    }
-    else
-    {
-        if (!params->draw_overlay) {
-        #pragma omp parallel for
-            for (int i = 0; i < frame.rows; ++i) {
-                for (int j = 0; j < frame.cols; ++j) {
-                    uchar b = frame_matr[(i * frame.cols + j) * 3], g = frame_matr[(i * frame.cols + j) * 3 + 1], r = frame_matr[(i * frame.cols + j) * 3 + 2];
-                    res_matr[i * frame.cols + j] = (r > g && g > b && r > 190 && g > 100 && b < 140) ? 1 : 0;
-                    result->pixel_cnt += res_matr[i * frame.cols + j];
+    ulong rgb_pixel_cnt = 0;
+    if (!params->draw_overlay) {
+    #pragma omp parallel for
+        for (int i = 0; i < frame.rows; ++i) {
+            for (int j = 0; j < frame.cols; ++j) {
+                uchar b = frame_matr[(i * frame.cols + j) * 3], g = frame_matr[(i * frame.cols + j) * 3 + 1], r = frame_matr[(i * frame.cols + j) * 3 + 2];
+                if (r > g && g > b && r > 190 && g > 100 && b < 140)
+                {
+                    rgb_pixel_cnt++;
+                    result->pixel_cnt++;
+                    res_matr[i * frame.cols + j] = 1;
+                }
+                else if (history->ema_rgb_extracted < params->ema_rgb_threshold and (float)(r * 0.299 + g * 0.587 + b * 0.114) > 150.)
+                {
+                    result->pixel_cnt++;
+                    res_matr[i * frame.cols + j] = 1;
+                }
+                else
+                {
+                    res_matr[i * frame.cols + j] = 0;
                 }
             }
-        } else {
-            cv::Mat overlay = CVKernel::video_data[process_data->video_name].overlay;
-            uchar* over_matr  = overlay.data;
+        }
+    } else {
+        cv::Mat overlay = CVKernel::video_data[process_data->video_name].overlay;
+        uchar* over_matr  = overlay.data;
 
-        #pragma omp parallel for
-            for (int i = 0; i < frame.rows; ++i) {
-                for (int j = 0; j < frame.cols; ++j) {
-                    uchar b = frame_matr[(i * frame.cols + j) * 3], g = frame_matr[(i * frame.cols + j) * 3 + 1], r = frame_matr[(i * frame.cols + j) * 3 + 2];
-                    res_matr[i * frame.cols + j] = (r > g && g > b && r > 190 && g > 100 && b < 140) ? 1 : 0;
-                    if (res_matr[i * frame.cols + j]) {
-                       over_matr[(i * frame.cols + j) * 3 + 1] = 0;
-                       over_matr[(i * frame.cols + j) * 3 + 2] = 0xff;
-                       result->pixel_cnt++;
-                    }
+    #pragma omp parallel for
+        for (int i = 0; i < frame.rows; ++i) {
+            for (int j = 0; j < frame.cols; ++j) {
+                uchar b = frame_matr[(i * frame.cols + j) * 3], g = frame_matr[(i * frame.cols + j) * 3 + 1], r = frame_matr[(i * frame.cols + j) * 3 + 2];
+                if (r > g && g > b && r > 190 && g > 100 && b < 140)
+                {
+                    rgb_pixel_cnt++;
+                    result->pixel_cnt++;
+                    res_matr[i * frame.cols + j] = 1;
+                    over_matr[(i * frame.cols + j) * 3 + 1] = 0;
+                    over_matr[(i * frame.cols + j) * 3 + 2] = 0xff;
+                }
+                else if (history->ema_rgb_extracted < params->ema_rgb_threshold and (float)(r * 0.299 + g * 0.587 + b * 0.114) > 150.)
+                {
+                    result->pixel_cnt++;
+                    res_matr[i * frame.cols + j] = 1;
+                    over_matr[(i * frame.cols + j) * 3 + 1] = 0;
+                    over_matr[(i * frame.cols + j) * 3 + 2] = 0xff;
+                }
+                else
+                {
+                    res_matr[i * frame.cols + j] = 0;
                 }
             }
         }
     }
 
+    int rgb_enough_criteria = (double)rgb_pixel_cnt / (frame.rows * frame.cols) > params->rgb_area_threshold ? 1 : 0;
+    history->ema_rgb_extracted = (process_data->fps * history->ema_rgb_extracted + rgb_enough_criteria) / (process_data->fps + 1);
     return result;
 }

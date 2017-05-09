@@ -10,18 +10,22 @@ public:
     virtual ~DataRFireMM();
     cv::Mat mask;
     ulong pixel_cnt;
+    double ema_rgb_extracted;
 };
 
 struct RFireParams : public CVKernel::CVNodeParams {
     RFireParams(QJsonObject& json_obj);
     virtual ~RFireParams() {}
-    int brightness_threshold;
+    double rgb_area_threshold;
+    double ema_rgb_threshold;
 };
 
 struct RFireHistory : public CVKernel::CVNodeHistory {
-    RFireHistory() {}
-    virtual void clear_history() {}
+    RFireHistory();
+    virtual void clear_history();
     virtual ~RFireHistory() {}
+
+    double ema_rgb_extracted;
 };
 
 class RFireMaskingModel : public CVKernel::CVProcessingNode {
