@@ -9,6 +9,12 @@ DataRFireMM::DataRFireMM(int rows, int cols) :
 
 DataRFireMM::~DataRFireMM() {}
 
+RFireParams::RFireParams(QJsonObject& json_obj) : CVKernel::CVNodeParams(json_obj)
+{
+    QJsonObject::iterator iter;
+    brightness_threshold = (iter = json_obj.find("brightness_threshold")) == json_obj.end() ? 150 : iter.value().toInt();
+}
+
 QSharedPointer<CVKernel::CVNodeData> RFireMaskingModel::compute(QSharedPointer<CVKernel::CVProcessData> process_data) {
     cv::Mat frame = CVKernel::video_data[process_data->video_name].frame;
     QSharedPointer<RFireParams> params = process_data->params[metaObject()->className()].staticCast<RFireParams>();
@@ -17,10 +23,13 @@ QSharedPointer<CVKernel::CVNodeData> RFireMaskingModel::compute(QSharedPointer<C
     uchar* res_matr   = result->mask.data;
 
 
-    int left_top_brightness = (frame_matr[(4 * frame.cols + 4) * 3] + frame_matr[(4 * frame.cols + 4) * 3 + 1] + frame_matr[(4 * frame.cols + 4) * 3 + 2]);
-    int right_top_brightness = (frame_matr[(5 * frame.cols - 4) * 3] + frame_matr[(5 * frame.cols - 4) * 3 + 1] + frame_matr[(5 * frame.cols - 4) * 3 + 2]);
+    cv::Mat left_top(frame.rowRange(0, 5).colRange(0, 5));
+    auto left_top_sum = cv::sum(left_top);
+    cv::Mat right_top(frame.rowRange(0, 5).colRange(frame.cols - 5, frame.cols));
+    auto right_top_sum = cv::sum(left_top);
 
-    if (left_top_brightness < 150 or right_top_brightness < 150)
+    if (left_top_sum[0] + left_top_sum[1] + left_top_sum[2] < 150 * left_top.rows * left_top.cols or
+            right_top_sum[0] + right_top_sum[1] + right_top_sum[2] < 150 * right_top.rows * right_top.cols)
     {
         /*Video capture can be blinded or there is night, work into GRAYSCALE*/
         cv::Mat gray;

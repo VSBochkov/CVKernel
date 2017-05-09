@@ -13,8 +13,9 @@ public:
 };
 
 struct RFireParams : public CVKernel::CVNodeParams {
-    RFireParams(QJsonObject& json_obj) : CVNodeParams(json_obj) {}
+    RFireParams(QJsonObject& json_obj);
     virtual ~RFireParams() {}
+    int brightness_threshold;
 };
 
 struct RFireHistory : public CVKernel::CVNodeHistory {

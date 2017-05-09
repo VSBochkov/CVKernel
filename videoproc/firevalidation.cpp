@@ -1,5 +1,6 @@
 #include "firevalidation.h"
 #include "rfiremaskingmodel.h"
+#include "yfiremaskingmodel.h"
 
 #include <QSharedPointer>
 

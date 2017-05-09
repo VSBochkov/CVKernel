@@ -1,6 +1,7 @@
 #include "fireweight.h"
 #include "firebbox.h"
 #include "rfiremaskingmodel.h"
+#include "yfiremaskingmodel.h"
 #include "firevalidation.h"
 #include <omp.h>
 #include <opencv2/imgproc.hpp>
