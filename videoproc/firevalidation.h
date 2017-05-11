@@ -9,6 +9,7 @@ struct FireValidationData : public CVKernel::CVNodeData {
     FireValidationData(int rows, int cols);
     virtual ~FireValidationData();
     cv::Mat mask;
+    ulong pixel_cnt;
 };
 
 struct FireValidationParams : public CVKernel::CVNodeParams {

@@ -13,6 +13,7 @@
 FireValidationData::FireValidationData(int rows, int cols) :
     CVKernel::CVNodeData() {
     mask = cv::Mat(rows, cols, cv::DataType<uchar>::type);
+    pixel_cnt = 0;
 }
 
 FireValidationData::~FireValidationData() {}
@@ -66,7 +67,13 @@ QSharedPointer<CVKernel::CVNodeData> FireValidation::compute(QSharedPointer<CVKe
                     ) * params->alpha2;
                 } else
                     dma_matr[id] = (1. - params->alpha2) * dma_matr[id] + params->alpha2 * 10;
-                res_mask[id] = dma_matr[id] >= params->dma_thresh ? 1 : 0;
+
+                if (dma_matr[id] >= params->dma_thresh) {
+                    res_mask[id] = 1;
+                    result->pixel_cnt++;
+                } else {
+                    res_mask[id] = 0;
+                }
             }
         }
     } else {
@@ -93,6 +100,7 @@ QSharedPointer<CVKernel::CVNodeData> FireValidation::compute(QSharedPointer<CVKe
                     overlay_matr[id * 3 + 1] = frame_matr[id * 3 + 1];
                     overlay_matr[id * 3 + 2] = frame_matr[id * 3 + 2];
                     res_mask[id] = 1;
+                    result->pixel_cnt++;
                 } else {
                     res_mask[id] = 0;
                 }
