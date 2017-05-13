@@ -81,29 +81,31 @@ class cv_supervisor(cv_connector):
             print 'client #{} is closed'.format(packet['id'])
         elif packet['state'] == cv_connector.state_ready:
             print 'client #{} is ready'.format(packet['id'])
-            if packet['overlay_path'] == '' \
-                    or packet['overlay_path'][0:2] != 'udp' \
-                    or packet['overlay_path'][0:2] != 'rtp' \
-                    or packet['overlay_path'][0:3] != 'rtsp':
+            if packet['overlay_path'] == '':
                 return
-            print 'overlay_path: {}'.format(packet['overlay_path'])
+            print 'overlay_path is {}'.format(packet['overlay_path'])
+            if packet['overlay_path'][0:3] != 'udp' \
+                    and packet['overlay_path'][0:3] != 'rtp' \
+                    and packet['overlay_path'][0:4] != 'rtsp':
+                return
             if packet['id'] in self.display_processes.keys():
                 self.display_processes[packet['id']]['process'].terminate()
                 self.display_processes.pop(packet['id'])
-                print 'overlay displayer closed'
+                print 'overlay displayer is closed'
             else:
                 self.display_processes[packet['id']] = {'overlay': packet['overlay_path']}
                 process = multiprocessing.Process(target=self.__display_overlay, args=(packet['id'],))
                 self.display_processes[packet['id']]['process'] = process
-                print 'created overlay displayer'
+                print 'overlay displayer is created'
         elif packet['state'] == cv_connector.state_run:
             print 'client #{} is run'.format(packet['id'])
-            if packet['overlay_path'] == '' \
-                    or packet['overlay_path'][0:2] != 'udp' \
-                    or packet['overlay_path'][0:2] != 'rtp' \
-                    or packet['overlay_path'][0:3] != 'rtsp':
+            if packet['overlay_path'] == '':
                 return
-            print 'overlay_path: {}'.format(packet['overlay_path'])
+            print 'overlay_path is {}'.format(packet['overlay_path'])
+            if packet['overlay_path'][0:3] != 'udp' \
+                    and packet['overlay_path'][0:3] != 'rtp' \
+                    and packet['overlay_path'][0:4] != 'rtsp':
+                return
             if packet['id'] in self.display_processes.keys():
                 self.display_processes[packet['id']]['process'].start()
             else:
