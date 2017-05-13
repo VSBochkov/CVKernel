@@ -152,16 +152,16 @@ QSharedPointer<CVKernel::CVNodeData> FireBBox::compute(QSharedPointer<CVKernel::
     cv::Mat fire_valid = dynamic_cast<FireValidationData *>(process_data->data["FireValidation"].data())->mask;
     ulong dyn_pixel_cnt = dynamic_cast<FireValidationData *>(process_data->data["FireValidation"].data())->pixel_cnt;
 
-    if ((double) dyn_pixel_cnt / (fire_valid.rows * fire_valid.cols) > 0.06)
+    /*if ((double) dyn_pixel_cnt / (fire_valid.rows * fire_valid.cols) > 0.06)
     {
         QSharedPointer<FireBBoxHistory> history = process_data->history[metaObject()->className()].staticCast<FireBBoxHistory>();
         QSharedPointer<FireBBoxData> result(new FireBBoxData(history->base_bboxes));
         return result;
-    }
+    }*/
 
     ulong rgb_pixel_cnt = dynamic_cast<DataRFireMM *>(process_data->data["RFireMaskingModel"].data())->pixel_cnt;
     cv::Mat overlay = CVKernel::video_data[process_data->video_name].overlay;
-    std::vector<obj_bbox> bboxes = calc_bboxes(fire_valid.clone(), overlay, rgb_pixel_cnt, cv::Scalar(0, 0xff, 0xff), *process_data);
+    std::vector<obj_bbox> bboxes = calc_bboxes(fire_valid.clone(), overlay, rgb_pixel_cnt, cv::Scalar(0, 0xff, 0), *process_data);
     QSharedPointer<FireBBoxData> result(new FireBBoxData(bboxes));
     return result;
 }
