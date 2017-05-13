@@ -13,7 +13,6 @@
 FireValidationData::FireValidationData(int rows, int cols) :
     CVKernel::CVNodeData() {
     mask = cv::Mat(rows, cols, cv::DataType<uchar>::type);
-    pixel_cnt = 0;
 }
 
 FireValidationData::~FireValidationData() {}
@@ -65,15 +64,10 @@ QSharedPointer<CVKernel::CVNodeData> FireValidation::compute(QSharedPointer<CVKe
                         pow((float) frame_matr[id * 3 + 1]  - ema_matr[id * 3 + 1], 2.) +
                         pow((float) frame_matr[id * 3 + 2]  - ema_matr[id * 3 + 2], 2.)
                     ) * params->alpha2;
-                } else
-                    dma_matr[id] = (1. - params->alpha2) * dma_matr[id] + params->alpha2 * 10;
-
-                if (dma_matr[id] >= params->dma_thresh) {
-                    res_mask[id] = 1;
-                    result->pixel_cnt++;
                 } else {
-                    res_mask[id] = 0;
+                    dma_matr[id] = (1. - params->alpha2) * dma_matr[id] + params->alpha2 * 10;
                 }
+                res_mask[id] = dma_matr[id] >= params->dma_thresh ? 1 : 0;
             }
         }
     } else {
@@ -92,22 +86,19 @@ QSharedPointer<CVKernel::CVNodeData> FireValidation::compute(QSharedPointer<CVKe
                         pow((float) frame_matr[id * 3 + 1]  - ema_matr[id * 3 + 1], 2.) +
                         pow((float) frame_matr[id * 3 + 2]  - ema_matr[id * 3 + 2], 2.)
                     ) * params->alpha2;
-                } else
+                } else {
                     dma_matr[id] = (1. - params->alpha2) * dma_matr[id] + params->alpha2 * 10;
-
+                }
                 if (dma_matr[id] >= params->dma_thresh) {
                     overlay_matr[id * 3] = 0xff;
                     overlay_matr[id * 3 + 1] = frame_matr[id * 3 + 1];
                     overlay_matr[id * 3 + 2] = frame_matr[id * 3 + 2];
                     res_mask[id] = 1;
-                    result->pixel_cnt++;
                 } else {
                     res_mask[id] = 0;
                 }
             }
         }
     }
-//    cv::Mat rgb_fvalid = CVKernel::video_data[process_data.video_name].debug_overlay.rowRange(overlay.rows * 2, overlay.rows * 3);
-//    cv::cvtColor(result->mask * 255, rgb_fvalid, CV_GRAY2BGR);
     return result;
 }
