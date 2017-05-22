@@ -58,7 +58,7 @@ class Test:
             ready_state_handler=self.test_on_ready,
             closed_state_handler=self.test_on_closed,
             meta_handler=self.meta_handler,
-            cvproc_json_path=cv_kernel_path + '/fire_overlay_on_robot_rpi.json'
+            cvproc_json_path=cv_kernel_path + '/fire_overlay_on_pc.json'
         )
 
         self.test_proc.run()

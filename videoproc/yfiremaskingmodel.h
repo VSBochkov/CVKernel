@@ -29,4 +29,4 @@ public:
     explicit YFireMaskingModel() {}
     virtual QSharedPointer<CVKernel::CVNodeData> compute(QSharedPointer<CVKernel::CVProcessData> process_data);
 };
-#endif // YFIREMASKINGMODEL_H
+#endif // YFIREMASKINGMODEL_H   // Выход из области подключения

@@ -1,78 +1,52 @@
 #ifndef CVJSONCONTROLLER_H
 #define CVJSONCONTROLLER_H
 
-#include <QSharedPointer>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonArray>
-#include <QTextStream>
-#include <QFile>
-#include <QDebug>
+#include <QSharedPointer>   // Подключение файла QSharedPointer для использования одноименного класса
+#include <QJsonDocument>    // Подключение файла QJsonDocument для использования одноименного класса
+#include <QJsonObject>      // Подключение файла QJsonObject для использования одноименного класса
+#include <QJsonArray>       // Подключение файла QJsonArray для использования одноименного класса
+#include <QTextStream>      // Подключение файла QTextStream для использования одноименного класса
+#include <QFile>            // Подключение файла QFile для использования одноименного класса
 
-
-namespace CVKernel {
-    class CVJsonController {
-    public:
-        template <class Structure> static QSharedPointer<Structure> get_from_json_buffer(QByteArray& json_arr) {
-            QJsonDocument json = QJsonDocument::fromJson(json_arr);
-            QJsonObject json_obj = json.object();
-            return QSharedPointer<Structure>(new Structure(json_obj));
+namespace CVKernel {    // Определение области видимости
+    class CVJsonController {    // Определение класса CVJsonController
+    public: // Открытая секция класса
+        template <class Structure> static QSharedPointer<Structure> get_from_json_buffer(QByteArray& json_arr) {    // Определение шаблонной функции получения объекта из буфера в формате JSON
+            QJsonDocument json = QJsonDocument::fromJson(json_arr);     // Прочитываем буфер в структуру документа JSON
+            QJsonObject json_obj = json.object();                       // Преобразуем тип JSON документа в JSON объект
+            return QSharedPointer<Structure>(new Structure(json_obj));  // Возвращаем указатель на целевой тип инициализированный JSON объектом
         }
 
-        template <class Structure> static QSharedPointer<Structure> get_from_json_file(QString& json_fname) {
-            QFile json_file(json_fname);
-            if (!json_file.open(QIODevice::ReadOnly | QIODevice::Text))
-                return QSharedPointer<Structure>();
+        template <class Structure> static QSharedPointer<Structure> get_from_json_file(QString& json_fname) {   // Определение шаблонной функции получения объекта из файла в формате JSON
+            QFile json_file(json_fname);    // Создаем объект файла
+            if (!json_file.open(QIODevice::ReadOnly | QIODevice::Text)) // Если не получается открыть файл в режиме чтения
+                return QSharedPointer<Structure>(); //  То возвращаем целевой объект по-умолчанию
 
-            QJsonDocument json = QJsonDocument::fromJson(json_file.readAll());
-            json_file.close();
-            QJsonObject json_obj = json.object();
+            QJsonDocument json = QJsonDocument::fromJson(json_file.readAll());  // Прочитываем файл в структуру документа JSON
+            json_file.close();                      // Закрываем файл
+            QJsonObject json_obj = json.object();   // Преобразуем тип JSON документа в JSON объект
 
-            return QSharedPointer<Structure>(new Structure(json_obj));
+            return QSharedPointer<Structure>(new Structure(json_obj));  // Возвращаем указатель на целевой тип инициализированный JSON объектом
         }
 
-        template <class Structure> static QByteArray pack_to_json_binary(Structure data) {
-            QJsonObject json_obj = data.pack_to_json();
-            if (json_obj.empty()) {
-                return QByteArray();
-            }
-            QJsonDocument json_doc(json_obj);
-            return json_doc.toBinaryData();
+        template <class Structure> static QByteArray pack_to_json(Structure data) { // Определение шаблонной функции перевода объекта данных в формат JSON
+            QJsonObject json_obj = data.pack_to_json();         // Вызываем метод конвертации целевого объекта в формат JSON
+            if (json_obj.empty())                               // Если JSON объект пустой
+                return QByteArray();                            // Возвращаем пустой буфер
+
+            QJsonDocument json_doc(json_obj);                   // Определяем структуру JSON документа из JSON объекта
+            return json_doc.toJson(QJsonDocument::Compact);     // Возвращаем JSON документ сериализованный в буффер
         }
 
-        template <class Structure> static QByteArray pack_to_json_ascii(Structure data) {
-            QJsonObject json_obj = data.pack_to_json();
-            if (json_obj.empty()) {
-                return QByteArray();
-            }
-            QJsonDocument json_doc(json_obj);
-            return json_doc.toJson(QJsonDocument::Compact);
-        }
+        template <class Structure> static QByteArray pack_to_json(Structure* data) { // Определение шаблонной функции перевода указателя на объект данных в формат JSON
+            QJsonObject json_obj = data->pack_to_json();        // Вызываем метод конвертации целевого объекта в формат JSON
+            if (json_obj.empty())                               // Если JSON объект пустой
+                return QByteArray();                            // Возвращаем пустой буфер
 
-        template <class Structure> static QByteArray pack_to_json_ascii(Structure* data) {
-            QJsonObject json_obj = data->pack_to_json();
-            if (json_obj.empty()) {
-                return QByteArray();
-            }
-            QJsonDocument json_doc(json_obj);
-            return json_doc.toJson(QJsonDocument::Compact);
-        }
-
-        template <class Structure> static void pack_to_json_file(Structure data, QString json_filename) {
-            QJsonObject json_obj = data.pack_to_json();
-            if (json_obj.empty()) {
-                return;
-            }
-            QJsonDocument json_doc(json_obj);
-            QFile json_file(json_filename);
-            if (!json_file.open(QIODevice::WriteOnly | QIODevice::Text))
-                return;
-
-            QTextStream stream(&json_file);
-            stream << json_doc.toJson();
-            json_file.close();
+            QJsonDocument json_doc(json_obj);                   // Определяем структуру JSON документа из JSON объекта
+            return json_doc.toJson(QJsonDocument::Compact);     // Возвращаем JSON документ сериализованный в буффер
         }
     };
 }
 
-#endif // CVJSONCONTROLLER_H
+#endif // CVJSONCONTROLLER_H   // Выход из области подключения

@@ -1,15 +1,19 @@
 {
-  "input_path": "../videos/fire2i7.mp4",
-  "output_path": "file:./overFire222i7.avi",
-  "output_path_remote": "udp:5656/overlay2i7.avi",
+  "input_path": "../videos/fire3i7.mp4",
+  "output_path_file": "file:./overFire3i7.avi",
+  "output_path": "udp:5656/overlay2i7.avi",
   "process": [{
       "node": "RFireMaskingModel",
+      "rgb_area_threshold": 0.0,
+      "rgb_freq_threshold": 0.0,
+      "draw_overlay": false,
       "children": [{
           "node": "FireValidation",
           "children": [{
               "node": "FireBBox",
               "children": [{
                   "node": "FireWeightDistrib",
+                  "draw_overlay": true,
                   "children": [{
                       "node": "FlameSrcBBox",
                       "draw_overlay": true,

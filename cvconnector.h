@@ -1,187 +1,174 @@
 #ifndef CVCONNECTOR_H
 #define CVCONNECTOR_H
 
-#include <QSharedPointer>
-#include <QJsonObject>
-#include <QByteArray>
-#include <QTcpSocket>
-#include <QUdpSocket>
-#include <QTimer>
-#include <QMap>
+#include <QSharedPointer>   // Подключение файла QSharedPointer для использования одноименного класса
+#include <QJsonObject>      // Подключение файла QJsonObject для использования одноименного класса
+#include <QByteArray>       // Подключение файла QByteArray для использования одноименного класса
+#include <QTcpSocket>       // Подключение файла QTcpSocket для использования одноименного класса
+#include <QUdpSocket>       // Подключение файла QUdpSocket для использования одноименного класса
+#include <QTimer>           // Подключение файла QTimer для использования одноименного класса
+#include <QMap>             // Подключение файла QMap для использования одноименного класса
+#include <memory>           // Подключение файла memory для использования класса unique_ptr
 
-#include <memory>
 
+namespace CVKernel      // Определение области видимости
+{
+    class CVIONode;             // Предварительное объявление класса CVIONode
+    class CVProcessForest;      // Предварительное объявление класса CVProcessForest
+    class CVProcessingNode;     // Предварительное объявление класса CVProcessingNode
+    class CVNetworkManager;     // Предварительное объявление класса CVNetworkManager
+    class CVProcessManager;     // Предварительное объявление класса CVProcessManager
+    class CVConnector;          // Предварительное объявление класса CVConnector
 
-namespace CVKernel {
-
-    class CVIONode;
-    class CVProcessForest;
-    class CVProcessingNode;
-    class CVNetworkManager;
-    class CVProcessManager;
-
-    class CVConnector;
-
-    struct CVConnectorType
+    struct CVConnectorType      // Определение структуры типа коннектора полученной по сети
     {
-        enum type_value {client = false, supervisor = true} type;
-        CVConnectorType(QJsonObject& json_obj);
+        enum type_value {client = false, supervisor = true} type;   // Целочисленное перечисление типа коннектора
+        CVConnectorType(QJsonObject& json_obj);     // Объявление конструктора структуры
     };
 
-    struct CVInputProcessor
+    struct CVInputProcessor     // Определение структуры процессора приема входящих сообщений
     {
-        enum class recv_state {GET_SIZE, GET_BUFFER} state = recv_state::GET_SIZE;
-        uint64_t buffer_size = 0;
-        uint64_t bytes_received = 0;
-        QByteArray buffer;
-        bool receive_message(QTcpSocket& tcp_socket);
-        void clear_buffer();
+        enum class recv_state {GET_SIZE, GET_BUFFER} state = recv_state::GET_SIZE;  // Определение состояний конечного автомата приема данных
+        uint64_t buffer_size = 0;       // Определение размера входящего буфера
+        uint64_t bytes_received = 0;    // Определение количества принятых байт
+        QByteArray buffer;              // Определение массива байт входящих данных
+        bool receive_message(QTcpSocket& tcp_socket);   // Объявление метода принятия входящего сообщения
+        void clear_buffer();                            // Объявление метода очистки буфера
     };
 
-    struct CVConnectorCommand
+    struct CVConnectorCommand   // Определение абстрактной структуры команды коннектора - (Паттерн ООП "Команда")
     {
-        virtual ~CVConnectorCommand() {}
-        virtual void execute() = 0;
+        virtual ~CVConnectorCommand() {}    // Определение виртуального деструктора класса
+        virtual void execute() = 0;         // Объявление чисто виртуального метода выполнения команды
     };
 
-    struct CVConnectorState
+    struct CVConnectorState     // Определение структуры состояния коннектора - (Паттерн ООП "Стратегия")
     {
-        enum value {closed = 0, ready = 1, run = 2} state;
-        std::unique_ptr<CVConnectorCommand> command;
+        enum val {closed = 0, ready = 1, run = 2} value;    // Определение значения состояния
+        std::unique_ptr<CVConnectorCommand> command;        // Определение указателя на объект команды
 
-        CVConnectorState(CVConnectorState::value st, CVConnector& conn)
-            : state(st),
-              connector(conn)
-        {}
+        CVConnectorState(CVConnectorState::val st, CVConnector& conn)   // Определение конструктора класса
+            : value(st),                // Присваиваем значение состояния
+              connector(conn) {}        // Присваиваем объекта-собственника состояния
 
-        virtual ~CVConnectorState() = default;
-        virtual void handleIncommingMessage(QByteArray& buffer) = 0;
+        virtual ~CVConnectorState() = default;      // Определение виртуального деструктора класса
+        virtual void handle_incomming_message(QByteArray& buffer) = 0;  // Объявление чисто виртуального метода обработки входящего сообщения
+        QJsonObject pack_to_json();                 // Объявление метода упаковки структуры в формат JSON
 
-        QJsonObject pack_to_json();
-
-        CVConnector& connector;
+        CVConnector& connector;         // Определение ссылки на объект-собственника состояния
     };
 
-    struct CVConnectorClosed : CVConnectorState
+    struct CVConnectorClosed : CVConnectorState // Определение структуры состояния "Не активен" - (Паттерн ООП "Стратегия")
     {
-        CVConnectorClosed(CVConnector& conn)
-            : CVConnectorState(CVConnectorState::closed, conn)
-        {}
+        CVConnectorClosed(CVConnector& conn)                        // Определение конструктора класса
+            : CVConnectorState(CVConnectorState::closed, conn) {}   // Инициализация базового класса
 
-        virtual void handleIncommingMessage(QByteArray& buffer) = 0;
+        virtual void handle_incomming_message(QByteArray& buffer) = 0;  // Объявление чисто виртуального метода обработки входящего сообщения
     };
 
-    struct CVConnectorReady : CVConnectorState
+    struct CVConnectorReady : CVConnectorState // Определение структуры состояния "Остановлен" - (Паттерн ООП "Стратегия")
     {
-        CVConnectorReady(CVConnector& conn)
-            : CVConnectorState(CVConnectorState::ready, conn)
-        {}
+        CVConnectorReady(CVConnector& conn)                        // Определение конструктора класса
+            : CVConnectorState(CVConnectorState::ready, conn) {}   // Инициализация базового класса
 
-        virtual void handleIncommingMessage(QByteArray& buffer) override;
+        virtual void handle_incomming_message(QByteArray& buffer) override;  // Объявление виртуального метода обработки входящего сообщения
     };
 
-    struct CVConnectorRun : CVConnectorState
+    struct CVConnectorRun : CVConnectorState // Определение структуры состояния "В процессе" - (Паттерн ООП "Стратегия")
     {
-        CVConnectorRun(CVConnector& conn)
-            : CVConnectorState(CVConnectorState::run, conn)
-        {}
+        CVConnectorRun(CVConnector& conn)                        // Определение конструктора класса
+            : CVConnectorState(CVConnectorState::run, conn) {}   // Инициализация базового класса
 
-        virtual void handleIncommingMessage(QByteArray& buffer) override;
+        virtual void handle_incomming_message(QByteArray& buffer) override;  // Объявление виртуального метода обработки входящего сообщения
     };
 
-    struct CVRunCommand : public CVConnectorCommand
+    struct CVRunCommand : public CVConnectorCommand  // Определение стркутуры команды "Активировать" - (Паттерн ООП "Команда")
     {
-        CVRunCommand(CVConnector& conn)
-            : connector(conn)
-        {}
+        CVRunCommand(CVConnector& conn)     // Определение конструктора класса
+            : connector(conn) {}            // Инициализация ссылки на объекта-собственника
 
-        virtual void execute() override;
+        virtual void execute() override;    // Объявление виртуального метода выполнения команды
 
-        CVConnector& connector;
+        CVConnector& connector;             // Определение ссылки на объекта-собственника команды
     };
 
-    struct CVStopCommand : public CVConnectorCommand
+    struct CVStopCommand : public CVConnectorCommand // Определение стркутуры команды "Остановить" - (Паттерн ООП "Команда")
     {
-        CVStopCommand(CVConnector& conn)
-            : connector(conn)
-        {}
+        CVStopCommand(CVConnector& conn)    // Определение конструктора класса
+            : connector(conn) {}            // Инициализация ссылки на объекта-собственника
 
-        virtual void execute() override;
+        virtual void execute() override;    // Объявление виртуального метода выполнения команды
 
-        CVConnector& connector;
+        CVConnector& connector;             // Определение ссылки на объекта-собственника команды
     };
 
-    struct CVCloseCommand : public CVConnectorCommand
+    struct CVCloseCommand : public CVConnectorCommand // Определение стркутуры команды "Закрыть" - (Паттерн ООП "Команда")
     {
-        CVCloseCommand(CVConnector& conn)
-            : connector(conn)
-        {}
+        CVCloseCommand(CVConnector& conn)   // Определение конструктора класса
+            : connector(conn) {}            // Инициализация ссылки на объекта-собственника
 
-        virtual void execute() override;
+        virtual void execute() override;    // Объявление виртуального метода выполнения команды
 
-        CVConnector& connector;
+        CVConnector& connector;             // Определение ссылки на объекта-собственника команды
     };
 
-    struct CVConnectorFactory
+    struct CVConnectorFactory       // Определение структуры абстрактной фабрики коннектора - (Паттерн ООП "Абстрактная фабрика")
     {
-        virtual ~CVConnectorFactory() = default;
-        virtual CVConnectorState* set_state(CVConnector& connector) = 0;
+        virtual ~CVConnectorFactory() = default;    // Определение виртуального деструктора класса
+        virtual CVConnectorState* set_state(CVConnector& connector) = 0;    // Определение чисто-виртуальной функции создания состояния коннектора
     };
 
-    struct CVCommand
+    struct CVCommandType            // Определение структуры типа входящей команды коннектора полученной по сети
     {
-        enum command_value {run = 0, stop = 1, close = 2} command;
-        CVCommand(QJsonObject& json_object);
-        inline bool operator== (const CVCommand::command_value& desired_command) {
-            return command == desired_command;
+        enum command_value {run = 0, stop = 1, close = 2} command;          // Определение номера команды
+        CVCommandType(QJsonObject& json_object);                            // Объявление конструктора класса
+        inline bool operator== (const CVCommandType::command_value& desired_command) {  // Определение оператора равенства между командами
+            return command == desired_command;  // Возврат равенства значений команд
         }
     };
 
-    class CVConnector : public QObject
+    class CVConnector : public QObject      // Определение класса CVConnector - наследника класса QObject
     {
-    Q_OBJECT
-    public:
-        CVConnector(unsigned index, CVConnectorFactory& f, CVProcessManager& process_manager, CVNetworkManager& nm, QTcpSocket& sock);
+    Q_OBJECT        // Макроопределение предоставления спецификации класса модели Qt
+    public:         // Открытая секция класса
+        CVConnector(unsigned index, CVConnectorFactory& f, CVProcessManager& process_manager, CVNetworkManager& nm, QTcpSocket& sock);  // Объявление конструктора класса
+        virtual ~CVConnector(); // Объявление виртуального деструктора
 
-        virtual ~CVConnector();
+        virtual void run();         // Объявление виртуального метода выполнения команды "Активировать" - (Паттерн ООП "Команда")
+        virtual void stop();        // Объявление виртуального метода выполнения команды "Остановить" - (Паттерн ООП "Команда")
+        virtual void close() = 0;   // Объявление виртуального метода выполнения команды "Закрыть" - (Паттерн ООП "Команда")
 
-        virtual void run();
-        virtual void stop();
-        virtual void close() = 0;
+        void send_buffer(QByteArray byte_arr, QTcpSocket& sock);    // Объявление метода отправки буфера через TCP сокет
+        void state_changed();       // Объявление метода изменения состояния коннектора
+        unsigned get_id();          // Объявление метода получения номера коннектора
+        QHostAddress get_ip_address();  // Объявление метода получения IP-адреса присоединенного коннектора
 
-        void send_buffer(QByteArray byte_arr, QTcpSocket& sock);
+    signals:    // Секция сигналов Qt
+        void notify_supervisors(CVConnectorState&); // Определение сигнала оповещения супервайзеров о изменении состояния коннектора
 
-        void state_changed();
+    public slots:   // Секция слотов Qt
+        void process_incoming_message();    // Определение слота принятия входящего сообщения
 
-        unsigned get_id();
-        QHostAddress get_ip_address();
+    protected:      // Защищенная секция класса
+        unsigned id;    // Номер коннектора в системе
 
-    signals:
-        void notify_supervisors(CVConnectorState&);
+    private:    // Закрытая секция класса
+        CVInputProcessor receiver;                  // Процессор приема входящих сообщений
+        std::unique_ptr<CVConnectorState> state;    // Указатель на объект состояния коннектора
 
-    public slots:
-        void process_incoming_message();
+    public:     // Открытая секция класса
+        CVConnectorFactory& factory;                // Ссылка на тип абстрактной фабрики создания объектов состояния коннектора
 
-    protected:
-        unsigned id;
+    protected:  // Защищенная секция класса
+        bool running;                       // Флаг активности коннектора
+        QTcpSocket& tcp_state;              // Сокет обмена конфигурационными данными и состоянием коннектора
+        CVNetworkManager& network_manager;  // Сетевой менеджер
+        CVProcessManager& process_manager;  // Менеджер процессов
 
-    private:
-        CVInputProcessor receiver;
-    public:
-        CVConnectorFactory& factory;
-    private:
-        std::unique_ptr<CVConnectorState> state;
-
-    protected:
-        bool running;
-        QTcpSocket& tcp_state;
-        CVNetworkManager& network_manager;
-        CVProcessManager& process_manager;
-
-    public:
-        friend class CVClientFactory;
-        friend class CVSupervisorFactory;
+    public:     // Открытая секция класса
+        friend class CVClientFactory;       // Определение класса-друга CVClientFactory
+        friend class CVSupervisorFactory;   // Определение класса-друга CVSupervisorFactory
     };
 }
 
-#endif // CVCONNECTOR_H
+#endif // CVCONNECTOR_H   // Выход из области подключения
