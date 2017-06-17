@@ -1,42 +1,42 @@
-import json
-import multiprocessing
+import json                 # Подключаем модуль работы с JSON форматом
+import multiprocessing      # Подключаем модуль работы с процессами
 
-from cv_kernel import cv_connector
-from cv_kernel.cv_network_controller import *
+from cv_kernel import cv_connector              # Покдлючаем модуль коннектора платформы видеоаналитики
+from cv_kernel.cv_network_controller import *   # Подключаем модуль сетевого менеджера
 
 
-class cv_client(cv_connector):
-    def __init__(self, network_controller, cvkernel_json_path, run_state_handler, ready_state_handler,
-                 closed_state_handler, meta_handler, cvproc_json_path):
-        self.cv_process_description = json.load(open(cvproc_json_path, 'r'))
-        self.meta_handler = meta_handler
-        self.meta_mutex = multiprocessing.RLock()
-        self.meta_cv = multiprocessing.Condition(self.meta_mutex)
-        self.meta = multiprocessing.Process(target=self.__meta_receiver)
-        self.meta_udp = cv_network_controller.create_udp_sock(int(self.cv_process_description['meta_udp_port']))
-        self.meta.start()
-        cv_connector.__init__(self, network_controller, cvkernel_json_path, run_state_handler,
-                              ready_state_handler, closed_state_handler,
-                              {'type': 'client'}, self.cv_process_description)
+class cv_client(cv_connector):  # Определение класса клиента ядра видеоаналитики - наследника класса коннектора
+    def __init__(self, network_controller, cvkernel_json_path, run_state_handler, ready_state_handler,  # Определение
+                 closed_state_handler, meta_handler, cvproc_json_path):                                 # конструктора класса
+        self.cv_process_description = json.load(open(cvproc_json_path, 'r'))    # Считывание JSON спецификации видеоаналитики
+        self.meta_handler = meta_handler            # Инициализация метода обработчика принятия метаданных
+        self.meta_mutex = multiprocessing.RLock()   # Инициализация мьютекса процесса принятия метаданных
+        self.meta_cv = multiprocessing.Condition(self.meta_mutex)       # Определение условной блокировки процесса принятия метаданных
+        self.meta = multiprocessing.Process(target=self.__meta_receiver)    # Определение процесса принятия метаданных
+        self.meta_udp = cv_network_controller.create_udp_sock(int(self.cv_process_description['meta_udp_port']))    # Определение UDP порта принятия метаданных
+        self.meta.start()   # Активация процесса принятия метаданных
+        cv_connector.__init__(self, network_controller, cvkernel_json_path, run_state_handler,  # Вызов
+                              ready_state_handler, closed_state_handler,                        # конструктора
+                              {'type': 'client'}, self.cv_process_description)                  # базового класса
 
-    def destruct(self):
-        self.meta.join()
+    def destruct(self):     # Определение деструктора класса
+        self.meta.join()    # Ожидаем остановки процесса принятия метаданных
 
-    def start_jobs(self):
-        cv_connector.start_jobs(self)
-        with self.meta_mutex:
-            self.meta_cv.notify_all()
+    def start_jobs(self):       # Определение метода активации процессов
+        cv_connector.start_jobs(self)       # Вызов метода активации процессов базового класса
+        with self.meta_mutex:               # Захватываем мьютекс
+            self.meta_cv.notify_all()       # Освобождаем условную блокировку
 
-    def __meta_receiver(self):
-        with self.meta_mutex:
-            self.meta_cv.wait()
+    def __meta_receiver(self):  # Определение метода-процесса принятия метаданных
+        with self.meta_mutex:   # Захватываем мьютекс
+            self.meta_cv.wait() # Блокируем процесс пока не будет вызван метод активации процессов
 
-        while True:
-            packet = cv_network_controller.receive_packet(self.meta_udp)
-            if len(packet.keys()) == 0:
-                print 'exit from __meta_receiver'
-                return
-            self.meta_handler(packet)
+        while True:     # В бесконечном цикле
+            packet = cv_network_controller.receive_packet(self.meta_udp)    # Принимаем пакет метаданных по UDP от ядра видеоаналитики
+            if len(packet.keys()) == 0:     # Если пакет - пустая спецификация JSON
+                print 'exit from __meta_receiver'   # То выводим информацию о завершении потока в интерфейс командной строки
+                return  # Выходим из процесса
+            self.meta_handler(packet)   # Вызов метода обработки принятых метаданных
 
 
 class Test:

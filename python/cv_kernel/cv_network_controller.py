@@ -1,11 +1,11 @@
-import socket
-import json
-import time
-import multiprocessing
-import Queue
-import os
-import xml.etree.cElementTree as ET
-import subprocess
+import socket               # Покдлючение модуля работы с сокетами
+import json                 # Подключение модуля работы с JSON форматом
+import time                 # Подключение модуля работы со временем
+import multiprocessing      # Покдлючение модуля работы с процессами
+import Queue                # Подключение модуля работы с очередями
+import os                   # Покдлючение модуля работы с операционной системой
+import xml.etree.cElementTree as ET # Покдлючение модуля работы с XML
+import subprocess           # Подключение модуля работы с субпроцессами
 
 
 class cv_network_controller:
